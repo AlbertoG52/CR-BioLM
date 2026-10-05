@@ -1,0 +1,397 @@
+% =============================================================================
+%  Paper 2 — target venue: Biodiversity Informatics (University of Kansas)
+%  https://journals.ku.edu/jbi/index   · open access, no fees, 2 anonymous reviews
+%
+%  Submission format: the journal accepts Word, RTF or PDF (LaTeX is not listed),
+%  so this source is ours and the SUBMITTED artefact is the compiled PDF.
+%  House style follows the journal Evolution (Chicago / CBE), BIOSIS journal
+%  abbreviations, tables double spaced, figures at the end on separate pages.
+%  Candidate category: "Article"; the answerability analysis would also fit
+%  "Biodiversity Diagnoses" (completeness of information for a taxon / region).
+%
+%  STATUS: DRAFT OF THE DESIGN. Every number tagged \pending{} is not measured
+%  yet. Nothing here may be presented as a result until the pilot has run.
+% =============================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+% Review formatting: uncomment for the submitted PDF (house style is double spaced).
+% \doublespacing
+
+% Placeholder for anything not yet measured. Grep for "pending" before submitting.
+\newcommand{\pending}[1]{\textcolor{red}{[pending: #1]}}
+
+\title{\textbf{What can be answered, and what is merely asserted:\\
+grounding everyday questions about a regional flora\\
+in the published record}}
+
+\author{José Araya\\[2pt]
+\small \pending{affiliation} \\
+\small \texttt{\pending{email}}}
+
+\date{Draft --- \today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+General-purpose language models answer questions about plants fluently, and people
+increasingly ask them. For the regional floras of the tropics --- the long tail of
+plant diversity --- it is not known how often those answers are true, nor whether the
+published record is even able to settle them. We assemble a verifiable test bed for
+Costa Rica: a structured catalogue of \textbf{6{,}946} species extracted from the
+\emph{Manual de Plantas de Costa Rica}, \textbf{999{,}625} cleaned national occurrence
+records from a frozen, citable GBIF download, and derived evidence linking species to
+\textbf{143} protected areas, botanical regions and elevation. On that base we build a
+benchmark of everyday questions --- where a species grows, at what elevation, when it
+flowers, whether it can be grown in a given place, what it is called --- in which every
+question carries a structured answer key together with the \emph{level} of evidence
+behind it: stated by the flora, inferred from occurrence data, inferable only from
+relatives, or absent from the record. Answers are scored twice: the direct response
+against the key, and every individual claim against the species' full record, with
+\emph{contradicted} kept strictly apart from \emph{not in the record}. We compare a
+closed-book frontier model, the same model with web search, a local open-weights model,
+and a grounded system that answers only from this evidence and abstains when the record
+is silent. We report factual precision, contradiction rate, appropriate abstention and
+coverage, and we examine how each varies along two axes that we show are only weakly
+related: how well known a species is globally, and how well recorded it is locally.
+\pending{headline results}
+\end{abstract}
+
+\noindent\textbf{Keywords:} biodiversity informatics; large language models;
+retrieval-augmented generation; floras; species occurrence data; Costa Rica;
+answer verification; knowledge shortfalls
+
+\section{Introduction}
+
+Anyone with a phone now asks a language model where a plant grows, when it flowers, or
+whether it can be planted on their farm. The answers are fluent and specific. Whether
+they are true is a separate question, and for most of the world's plant diversity it is
+an open one: training data is dominated by temperate, well-studied, well-photographed
+taxa, while a tropical regional flora consists largely of species that are rarely
+collected and seldom written about outside a single published treatment.
+
+Two things follow, and this paper separates them deliberately.
+
+\paragraph{Are the answers true?} Model accuracy is known to decay with the popularity
+of the entity in question \citep{kandpal2023longtail,mallen2023popqa}. For organisms
+this has been measured mainly closed-book and at global scale
+\citep{dorm2025ecological}. What a regional user asks --- in Spanish, about a species
+with eleven herbarium records --- is the hardest case and the least measured.
+
+\paragraph{Can they be answered at all?} A question is only answerable if some source
+settles it. For a flora this is testable: the \emph{Manual de Plantas de Costa Rica}
+states elevation, slope, region and flowering months for most of its species; it rarely
+states whether a plant wants sun or shade, and it almost never states uses. Occurrence
+records can settle some of what the text does not, and nothing settles the rest. Which
+everyday questions fall in which class is itself a result, and it is the kind of
+information-completeness analysis this journal publishes as a biodiversity diagnosis.
+
+Keeping the two apart matters because they are usually confounded. A system that
+answers everything looks better than one that abstains, until abstention is counted as
+the correct behaviour where the record is silent. Our evaluation therefore scores
+\emph{what the record supports}, reports what no source can verify as its own category,
+and never treats silence as falsehood.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item A \textbf{verifiable test bed} for a tropical regional flora: structured
+        catalogue, cleaned national occurrence evidence, protected-area and region
+        linkage, and a federated common-name layer, all reproducible from citable
+        sources (Section~\ref{sec:data}).
+  \item A \textbf{benchmark of everyday questions with typed answer keys}, sampled
+        along two orthogonal popularity axes, in which each key records its evidence
+        level and its provenance (Section~\ref{sec:benchmark}).
+  \item A \textbf{two-level verification protocol} that scores the direct answer and
+        each individual claim, separating contradiction from absence of evidence, with
+        the checker itself calibrated against hand-labelled answers
+        (Section~\ref{sec:evaluation}).
+  \item An \textbf{empirical comparison} of closed-book, web-augmented, local and
+        grounded systems along the long tail, reporting precision together with
+        coverage rather than accuracy alone (Section~\ref{sec:systems}).
+  \item A \textbf{diagnosis of answerability}: for each everyday question type, what
+        fraction of the flora the published record can settle, and by what evidence
+        (Section~\ref{sec:analysis}).
+\end{enumerate}
+
+\section{Related work}
+
+\paragraph{Ecological knowledge in language models.} \citet{dorm2025ecological}
+evaluate frontier models on ecological tasks --- species presence, range maps, threat
+classification, trait estimation --- and find measurable but uneven knowledge. That work
+is closed-book and global; we test a single regional flora, compare grounded against
+ungrounded answering, and verify claim by claim against a published source.
+
+\paragraph{Retrieval grounding.} Retrieval-augmented generation \citep{lewis2020rag}
+improves factuality most for less popular entities \citep{mallen2023popqa}, and
+retrieval generally outperforms fine-tuning for injecting specific knowledge
+\citep{ovadia2024finetuning}. Our own earlier system \citep{araya2026grounding} showed
+that supplying the retrieved flora entry raises elevation agreement substantially for
+Costa Rican plants; it evaluated grounded answers against the same flora, which bounds
+what that result can claim. The present work changes the target: questions whose keys
+come from occurrence data, from experts, or from nothing at all.
+
+\paragraph{Extraction from biodiversity text.} Recent tools apply language models to
+pull occurrence and trait data out of literature, with explicit hallucination checks
+\citep{arete2025}. That line extracts \emph{into} the record; we evaluate answers
+\emph{out of} it.
+
+\paragraph{Claim-level verification.} Decomposing generated text into atomic claims and
+checking each against a source \citep{min2023factscore}, and separating truthfulness
+from informativeness \citep{lin2022truthfulqa}, are standard in NLP evaluation but have
+not been applied to a regional flora with a domain record as the authority.
+
+\section{Data}\label{sec:data}
+
+All components are rebuildable from citable sources; the frozen occurrence download
+fixes the evidence at a single point in time.
+
+\begin{table}[htbp]
+\centering
+\caption{Components of the test bed. Counts are as built.}
+\label{tab:data}
+\begin{tabular}{llr}
+\toprule
+Component & Source & Size \\
+\midrule
+Species catalogue      & \emph{Manual de Plantas de Costa Rica}, Vols.\ II--VI \citep{hammel_manual} & 6{,}946 species \\
+Occurrence records     & GBIF download \citep{gbif_snapshot}                   & 999{,}625 records \\
+Protected areas        & SINAC, terrestrial categories                          & 143 areas \\
+Species $\times$ area  & records inside protected-area polygons                 & 70{,}769 pairs \\
+Botanical regions      & digitized phytogeographic map \citep{castro_regions}   & 28 regions \\
+Taxonomic resolution   & GBIF backbone, accepted keys                           & 6{,}917 (99.6\%) \\
+Common names           & flora, iNaturalist (CR), GBIF, Tropicos                & \pending{final count} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Catalogue}
+Species entries were segmented from the OCR'd volumes and parsed into structured fields
+--- elevation range, slope, botanical regions, forest types, growth form, flowering
+months, endemism --- together with the verbatim distribution paragraph, morphological
+description and taxonomic discussion. The structured fields are produced
+deterministically, so each value can be traced to the sentence that produced it; an
+automated audit found \textbf{100\%} of extracted elevation, slope and endemism values
+to be literally supported by their source paragraph \pending{cite the companion paper
+or restate the audit here}.
+
+\subsection{Occurrence evidence}
+Records were cleaned with the rules used by the validated mapping pipeline: accepted
+taxon keys only, coordinates inside the national bounding box, swapped latitude and
+longitude repaired, records coarser than 10~km discarded. Each record carries elevation
+sampled from a digital elevation model, its botanical region, and a 30~arc-second cell
+identifier used to count distinct collection sites rather than duplicate records. Per
+species we aggregate record counts, distinct sites, elevation quantiles, regions,
+record months, and the protected areas the records fall within.
+
+\subsection{Common names}\label{sec:names}
+Everyday questions use everyday names, which are ambiguous by nature. Names are
+federated from the flora itself, from the name iNaturalist marks as preferred for Costa
+Rica, and from the global indexes of GBIF and Tropicos, each row retaining its source in
+the shape of the Darwin Core vernacular-name extension. Resolution returns ranked
+candidates and an explicit decision rather than a single species: in our data
+\emph{cortez amarillo} denotes three species of \emph{Handroanthus} and \emph{poró}
+denotes ten species of \emph{Erythrina}. Global indexes raise coverage and lower local
+precision --- \emph{nazareno} returns a species used by that name elsewhere in Latin
+America --- so sources are ranked, with country-specific sources above global ones.
+
+\section{Benchmark}\label{sec:benchmark}
+
+\subsection{Species sampling}
+Two notions of ``rare'' are usually conflated. A species may be globally familiar and
+locally scarce (\emph{Stellaria media}: 821{,}441 records worldwide, 2 in Costa Rica) or
+locally well collected and globally obscure. Over our frame the two measures correlate
+only moderately (Spearman $\rho = 0.46$, $n = 6{,}917$), and they drive different
+hypotheses: global familiarity should govern what a model knows, local evidence governs
+what the record can confirm. We therefore stratify on both, in a $3 \times 3$ grid of
+tertiles, with equal allocation per cell so that the off-diagonal cells are as well
+represented as the diagonal. The frame excludes unnamed morphospecies and species whose
+accepted key is shared with another catalogue entry, since their occurrence evidence
+cannot be attributed. Pilot ($n = 18$) and main ($n = 99$) samples are disjoint and
+frozen with a recorded seed; prompts and rubrics are tuned only on the pilot.
+
+\subsection{Question types and answer keys}
+Questions are posed in Spanish, in the form a visitor, grower or naturalist would use.
+Each carries a structured key, the source of that key, and an evidence level
+(Table~\ref{tab:questions}). Place questions are generated in three varieties ---
+confirmed by records, possible by habitat overlap, and unlikely --- so that a yes/no key
+is never trivially ``yes''.
+
+\begin{table}[htbp]
+\centering
+\caption{Question types, the key each is scored against, and its evidence level.}
+\label{tab:questions}
+\small
+\begin{tabular}{p{3.0cm}p{5.4cm}p{4.0cm}l}
+\toprule
+Type & Example (translated) & Key from & Level \\
+\midrule
+Place (3 kinds) & ``If I visit Braulio Carrillo, can I find it?'' & records in park; region and elevation overlap & records / inferred \\
+Elevation       & ``At what altitude does it grow?''              & flora range, outliers        & stated \\
+Slope           & ``Caribbean side, Pacific, or both?''           & flora                        & stated \\
+Flowering       & ``In which months does it flower?''             & flora                        & stated \\
+Growth form     & ``Tree, shrub, herb, epiphyte or vine?''        & flora (species, else genus)  & stated / relatives \\
+Endemism        & ``Is it endemic to Costa Rica?''                & flora                        & stated \\
+Cultivation     & ``My farm is at 1{,}150~m --- can I grow it?''  & natural range and slope      & inferred \\
+Light           & ``Full sun or shade?''                          & expert labels                & \pending{to collect} \\
+Outside record  & ``Is it edible or medicinal?''                  & none --- abstention correct  & absent \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The pilot comprises 190 questions over 18 species and the main set 1{,}020 over 99
+species. Keys are explicitly scoped to \emph{what the record supports}: for a
+cosmopolitan weed collected once in the country, a key may be right about the record and
+wrong about the field. Keys asserting absence for species that are globally familiar but
+locally sparse are flagged for expert review, since that is where the record is most
+likely incomplete.
+
+\section{Systems compared}\label{sec:systems}
+
+\begin{enumerate}
+  \item \textbf{Closed-book frontier model.} What the model knows unaided.
+  \item \textbf{Frontier model with web search.} What a person actually gets today.
+  \item \textbf{Local open-weights model.} A reproducible baseline requiring no
+        proprietary service.
+  \item \textbf{Grounded system.} Answers composed only from the evidence pack
+        assembled for each question, with every claim carrying its source, and
+        abstention when the record is silent.
+  \item \textbf{Grounded, flora text only} (ablation): isolates how much the occurrence
+        and derived evidence adds over the written flora alone.
+\end{enumerate}
+
+\pending{final model identifiers and versions, with retrieval dates}
+
+\section{Evaluation framework}\label{sec:evaluation}
+
+\subsection{Two levels}
+Each answer is scored on the \emph{direct response} against the question's key, and on
+\emph{every factual claim it makes along the way} against the species' full record. A
+language model only decomposes the answer into typed claims and reads its stance; all
+comparisons --- elevations, months, slopes, growth forms, places --- are made by
+deterministic parsers against stored values, so the scoring itself is not a model
+judgement.
+
+\begin{table}[htbp]
+\centering
+\caption{Verdict vocabulary. Absence of evidence is never scored as falsehood.}
+\label{tab:verdicts}
+\small
+\begin{tabular}{llp{8.6cm}}
+\toprule
+Level & Verdict & Meaning \\
+\midrule
+Direct & correct              & matches the key within tolerance \\
+       & partially correct    & overlaps but overstates or understates the range \\
+       & overstated           & asserts more certainty than the record supports \\
+       & understated          & hedges where the record is definite \\
+       & wrong                & contradicts the key \\
+       & abstained            & declines; correct where the record is silent \\
+       & beyond record        & asserts something no source covers; expert adjudicates \\
+\midrule
+Claim  & supported            & the record states it, or records show it \\
+       & contradicted         & the record states otherwise \\
+       & not in the record    & checkable, but the record does not contain it \\
+       & unverifiable         & no source covers this kind of claim \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The distinction between \emph{contradicted} and \emph{not in the record} carries the
+scientific weight. Occurrence data reflects collection effort, so absence of records is
+not absence of the species, and a claim the flora does not make is not thereby false.
+Likewise, a true statement the flora happens not to contain --- a widely known use of a
+pasture grass, say --- is routed to \emph{beyond record} for expert adjudication rather
+than counted as an error.
+
+\subsection{Metrics}
+\begin{itemize}
+  \item \textbf{Factual precision}: supported $/$ (supported $+$ contradicted).
+  \item \textbf{Contradiction rate}: the share of answers containing a claim the record
+        refutes --- confident falsehood, the quantity that matters to a user.
+  \item \textbf{Unverifiable rate}: claims no source can check; the surface on which
+        confabulation is invisible to automated scoring.
+  \item \textbf{Abstention quality}: abstaining where the record is silent, and
+        answering where it is not.
+  \item \textbf{Informativeness}: whether a question was answered at all, so that
+        systems cannot win by refusing.
+  \item \textbf{Risk--coverage}: precision as a function of the share of questions
+        answered, which is the only fair comparison between a system that always
+        answers and one that may decline.
+\end{itemize}
+
+\subsection{Validating the checker}
+The checker is calibrated on hand-written answers with known verdicts spanning correct,
+wrong, overextended, overconfident, hedged, abstaining and invented responses; it
+currently reproduces \textbf{24/24} direct verdicts and detects \textbf{12/12} planted
+false claims. Those answers are author-written and cleaner than real model output, so
+before the main run a sample of \pending{$n$} real answers is hand-labelled and
+agreement with the checker reported.
+
+\subsection{Expert involvement}
+Experts contribute at three points: labelling light requirements, for which no record
+source exists; reviewing flagged answer keys where the record is likely incomplete; and
+adjudicating claims marked \emph{beyond record}. A subset of answers is additionally
+ranked blind for trustworthiness, with overlapping items across experts so that
+agreement can be reported.
+
+\section{Planned analyses}\label{sec:analysis}
+
+\begin{enumerate}
+  \item \textbf{Truthfulness along the long tail.} Factual precision and contradiction
+        rate as functions of global familiarity and local evidence, with species as a
+        random effect. Hypothesis: closed-book precision falls with global familiarity;
+        grounded precision does not.
+  \item \textbf{Does grounding help, and where?} Grounded versus closed-book and versus
+        web search, by question type. Hypothesis: the gain concentrates in the
+        locally-sparse cells, where the web has least to offer.
+  \item \textbf{Answerability diagnosis.} For each question type, the share of the
+        flora the record can settle and at what evidence level --- the biodiversity
+        diagnosis component.
+  \item \textbf{The cost of abstention.} Risk--coverage curves per system.
+  \item \textbf{Where keys and reality diverge.} Expert adjudication of flagged keys,
+        quantifying how often the published record is incomplete for everyday
+        questions.
+\end{enumerate}
+
+\section{Threats to validity}
+
+\textbf{The key is the record, not the world.} Scoring against a flora measures
+agreement with a published treatment. We mitigate by scoping every key explicitly, by
+flagging the cells where the record is most likely incomplete, and by expert
+adjudication. \textbf{Occurrence bias.} Records reflect collection effort; we never
+derive absence from them and report counts as effort. \textbf{Checker error.} The
+decomposition step is a model, with the measured calibration above and a planned
+human-labelled sample. \textbf{Web-search non-determinism.} Search-augmented answers
+depend on retrieval date; dates and model versions are recorded with every answer.
+\textbf{Scope.} Volumes VII--VIII are not yet in the catalogue, so a few common genera
+(for example \emph{Cecropia}) are absent; this is reported rather than hidden.
+
+\section{Data and code availability}
+
+Catalogue, benchmark questions with keys, evaluation code and the frozen occurrence
+download identifier are released under \pending{licence}; the system code lives at
+\url{https://github.com/jose2489/CR-FloraLM}. \pending{archive DOI for the released
+snapshot}
+
+\section*{Acknowledgements}
+\pending{experts, institutions, funding; keep anonymous until acceptance if the journal
+requests anonymous review}
+
+\bibliography{refs}
+\end{document}
