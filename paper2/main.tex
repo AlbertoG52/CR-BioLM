@@ -274,17 +274,53 @@ likely incomplete.
 
 \section{Systems compared}\label{sec:systems}
 
-\begin{enumerate}
-  \item \textbf{Closed-book frontier model.} What the model knows unaided.
-  \item \textbf{Frontier model with web search.} What a person actually gets today.
-  \item \textbf{Local open-weights model.} A reproducible baseline requiring no
-        proprietary service.
-  \item \textbf{Grounded system.} Answers composed only from the evidence pack
-        assembled for each question, with every claim carrying its source, and
-        abstention when the record is silent.
-  \item \textbf{Grounded, flora text only} (ablation): isolates how much the occurrence
-        and derived evidence adds over the written flora alone.
-\end{enumerate}
+The comparison is a two-factor design --- generator crossed with evidence --- rather
+than a list of named systems, so that any two cells differ in exactly one respect
+(Table~\ref{tab:design}).
+
+\begin{table}[htbp]
+\centering
+\caption{Design. Rows vary the generator, columns the evidence it may use. Letters are
+the arm labels used throughout.}
+\label{tab:design}
+\begin{tabular}{lcccc}
+\toprule
+Generator & no evidence & live web & flora text only & full evidence pack \\
+\midrule
+Frontier model         & A1 & B  & E  & D \\
+Second frontier vendor & A2 & -- & -- & -- \\
+Local open weights     & C  & -- & -- & F \\
+Template, no model     & -- & -- & -- & G \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{description}
+  \item[A1, A2] Closed-book frontier models. What a model knows unaided; two vendors so
+    the result is not a property of one system.
+  \item[B] Frontier model with web search --- what a person actually gets today, and the
+    only arm whose evidence we do not control. Retrieved URLs are logged, because the
+    flora and the occurrence data are themselves online.
+  \item[C] Local open-weights model, closed book: a reproducible floor that needs no
+    proprietary service.
+  \item[D] The grounded system. Answers are composed only from the evidence pack
+    assembled for the question, every claim carries its source, and the system abstains
+    where the record is silent.
+  \item[E] Ablation: the same generator and prompt over the flora text alone. The
+    contrast D\,--\,E isolates what the occurrence, protected-area, region and terrain
+    evidence contributes beyond the written treatment.
+  \item[F] The local model over the same evidence pack. The contrast F\,--\,D asks
+    whether grounding lets hardware a regional institution can afford match a frontier
+    service.
+  \item[G] A template answerer with no language model, composing the same evidence
+    deterministically. It bounds how much of the benchmark requires generation at all.
+\end{description}
+
+Every model arm receives one prompt template in which only the evidence block differs,
+including an identical statement that the system may decline to answer. Granting
+abstention to the grounded arm alone would make the abstention comparison meaningless.
+All arms see the same questions in the same order at temperature zero; run-to-run
+variability is reported separately, from replicates on a fixed balanced subset.
 
 \pending{final model identifiers and versions, with retrieval dates}
 
