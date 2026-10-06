@@ -76,6 +76,50 @@ Cheap to add once D exists: same prompt, one extra evidence block.
 
 ---
 
+## 2b. Modality, and where the spatial reasoning happens
+
+The questions are geospatial in content and textual in form, and the distinction is the
+design, not a shortcut.
+
+**No system performs spatial computation.** Point-in-polygon tests against SINAC
+polygons, elevation percentiles from the DEM, and botanical-region overlap are all
+computed at build time by `evidence/places.py::build()` and stored as facts. By the time
+any model sees the question, "2 records inside Parque Nacional Barbilla since 1970,
+elevation band 300-900 m, regions: Llanura de Tortuguero" is a row, not an inference.
+
+This is what makes the answers checkable. A model that reads a distribution map and
+reports what it sees has moved the spatial reasoning into the component we cannot
+verify, which is the opposite of the argument this paper makes. Stating it plainly in
+the methods is better than waiting to be asked: a reviewer at this journal will want to
+know whether the language model computed the spatial relationship, and the answer is
+that nothing in the pipeline asks it to.
+
+Consequences:
+
+- The answering arms should use **text models**. A vision-language model of the same
+  size spends capacity on an encoder this experiment never exercises.
+- A **multimodal arm would be a different experiment** --- can a VLM read a distribution
+  map and answer correctly? --- with map images as stimuli and its own benchmark. Worth
+  a future-work sentence, not scope.
+- Maps still belong in the paper as **output**: one qualitative figure showing a species'
+  grounded answer beside its rendered occurrence map, from the existing renderer. That
+  satisfies what a reader means by geospatial without putting pixels into the model.
+- Arm B may well retrieve a map; we take its text answer, as a user would.
+
+### The real risk is serialization, not modality
+
+Because spatial facts reach the model as prose, **how they are worded decides whether
+the right answer is reachable**. The `park_possible` key says *posible* when the park
+overlaps the Manual's regions and the species' elevation band but holds no records. A
+pack that reports only "records in park: 0" invites every arm to answer *no* and makes
+the key look unfair. The pack must carry the overlap facts themselves --- region match,
+elevation-band match, record count, and the explicit note that uneven collection effort
+means absence of records is not absence of the species.
+
+Getting that serialization right is worth more attention than the choice of model.
+
+---
+
 ## 3. What is held constant (the confound that already bit us once)
 
 The tier-ablation prompt bug is the precedent: arms differed in more than the thing
