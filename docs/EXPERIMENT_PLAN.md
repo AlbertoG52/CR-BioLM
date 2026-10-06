@@ -141,9 +141,9 @@ was X points" - buys the credibility without 3x the budget.
 | Stage | Units | Where it runs | Estimate |
 |---|---|---|---|
 | Pilot generation, LLM arms | 190 x 6 = 1,140 | mixed | hours |
-| Main generation, frontier arms (A1, B, D, E) | 4,080 | API | hours |
+| Main generation, paid arms (A1, D, E full; B, A2 subset) | 3,740 | API | hours |
 | Main generation, local arms (C, F) | 2,040 | mini-PC | about 10 h, run overnight |
-| **Main verification, every arm** | **7,140** | local extractor | **about 10 h** |
+| **Main verification, every arm** | **5,780** | local extractor | **about 8 h** |
 
 The verification pass is as expensive in wall-clock as the generation. Budget it, keep
 it a **separate resumable stage** from generation, and never re-generate to re-verify.
@@ -160,6 +160,83 @@ it a **separate resumable stage** from generation, and never re-generate to re-v
 
 Web search (arm B) dominates per-question cost and is the least predictable; meter it
 on the pilot before committing to the main run.
+
+---
+
+## 4b. How many questions actually get executed
+
+### Inventory
+
+| | Count |
+|---|---|
+| Distinct questions written `READY` | **1,210** (190 pilot + 1,020 main) |
+| Species | 117 (18 + 99), 11 per stratum in the main sample |
+| Question types | 11, averaging 93 questions each in the main set |
+| Main questions scoreable today | 921 |
+| Main questions awaiting expert labels (`light`) | 99 |
+| Main questions where abstention is the correct answer | 93 |
+
+Nothing in the experiment runs over 6,946 species. The catalogue-wide number appears
+only in the answerability analysis (sec. 6), which is a database query, not a model run.
+
+### Which arms need the full set, and which do not
+
+Counterintuitive, and it decides the budget. Pairs needed for 80% power at alpha 0.05,
+paired (McNemar), under the effect sizes we expect:
+
+| Contrast | Expected difference | Pairs needed |
+|---|---|---|
+| D vs A1 — grounded vs closed book | 30 pts | **28** |
+| G vs D — template vs grounded | 10 pts | 194 |
+| D vs B — grounded vs web search | 15 pts | 102 |
+| F vs D — local vs frontier, both grounded | 6 pts | 434 |
+| D vs E — full pack vs flora text only | 7 pts | 350 |
+| D vs E — if the gap is only 5 pts | 5 pts | **626** |
+
+The headline result needs almost no data. The **ablation and the local-model contrast
+need nearly the whole set**, because they are the small effects. So the arms to put on
+a subset are the ones with large expected effects, not the ones that look expensive.
+
+What also forces the full set: the arm x question-type heatmap (Fig. 9) gives 93
+questions per type at n = 1,020 and only 37 at 40% of it, and the long-tail curve
+(Fig. 5) gives 113 questions per G x L cell at full size.
+
+### Recommended main run
+
+| Arm | Questions | Units | Spend |
+|---|---|---|---|
+| A1 frontier, closed book | 1,020 | 1,020 | paid, cheapest prompt |
+| D frontier, full pack | 1,020 | 1,020 | paid |
+| E frontier, flora only | 1,020 | 1,020 | paid |
+| C local, closed book | 1,020 | 1,020 | free, local |
+| F local, full pack | 1,020 | 1,020 | free, local |
+| G template, no model | 1,020 | 1,020 | free, instant |
+| B frontier + web | **340** subset | 340 | paid, dearest per call |
+| A2 second vendor, closed book | **340** subset | 340 | paid |
+| | | **6,800 units** | **about 3,740 paid calls, about $42** |
+
+B and A2 drop to a stratified 340-question subset because both contrasts they serve
+need around 100 pairs or fewer. B is the most expensive call in the experiment and the
+one least worth paying for at full size.
+
+Verification is 6,800 minus arm G, whose answers are deterministic and whose claims are
+known by construction: about 5,780 LLM extractions, roughly 8 hours, overnight.
+
+### The pilot sizes the main run (pre-specify this now, not after)
+
+The table above assumes effect sizes. The pilot measures them. Rule, fixed in advance:
+
+1. Run the pilot (190 questions, all arms).
+2. From the observed discordance, compute the pairs needed for the **smallest**
+   contrast that the paper claims — D vs E.
+3. If that number is under 400, run the reduced main: **7 species per stratum, 63
+   species, about 650 questions**, saving roughly a third of everything.
+4. If it is over 400, run the full 1,020.
+5. Either way the decision is recorded before the main run starts, and the main run
+   happens once.
+
+This is the difference between choosing a sample size and justifying one. Deciding
+after seeing the main-run results is the thing reviewers look for.
 
 ---
 
