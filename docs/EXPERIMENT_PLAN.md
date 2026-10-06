@@ -458,3 +458,73 @@ natural checkpoint to stop and look.
 4. **Spanish-vs-English** (Fig 12): in or out.
 5. **Whether `light` ships as a scored type or as a declared gap.** If the expert labels
    do not arrive, reporting it as unanswerable is a legitimate result, not a hole.
+
+---
+
+## 13. Build plan: from here to the first run
+
+### What already exists
+
+| Piece | Where | State |
+|---|---|---|
+| Species catalogue, 6,946 fichas | `mpcr_rag/data/fichas.sqlite`, pgvector | `READY` |
+| Evidence providers: taxa, occurrences, places, global counts, vernacular | `mpcr_rag/evidence/` | `READY` |
+| Retrieval over chunked descriptions | `mpcr_rag/store/pg_store.py` | `READY` |
+| Species sample, 9 strata, pilot and main disjoint | `benchmark/sampler.py` + `data/` | `READY` |
+| 1,210 questions with typed keys | `benchmark/questions.py` + `data/` | `READY` |
+| Two-level verifier, calibrated 24/24 and 12/12 | `benchmark/verify.py` | `READY` |
+| Provider abstraction: OpenRouter + Ollama, one OpenAI-compatible payload | `llm/providers.py` | `READY`, reuse as is |
+| Resumable-run pattern (keyed skip, `--resume`, `--dry-run`) | `experiment/run_evaluation.py` | pattern to copy, not the code |
+| Deterministic sourced answer for one question type | `answer.py::_where_text` | the template for arm G |
+
+The provider layer matters more than it looks: every paid arm goes through one
+OpenRouter key, so the second-vendor arm A2 costs no new integration, and arm B can use
+the same endpoint with a search-enabled model.
+
+### Three blockers found while checking
+
+1. **Only one local model is installed** (`qwen3-vl:8b-instruct`), and it is the
+   verifier's claim extractor. Arms C and F cannot use it without the experiment
+   grading itself. **Pull a second local model** and assign it to C/F, keeping
+   `qwen3-vl` as the extractor. One download, no code.
+2. **Postgres is not running.** `python -m mpcr_rag.store.pg_store start`. One command,
+   listed only so it is not discovered at the start of a run.
+3. **`answer.py::_compose` is not arm D.** It LLM-composes from the
+   `distribution_paragraph` of up to twelve retrieved fichas. Arm D needs the full
+   structured evidence for *one* species, selected by question type. The composer is a
+   good prompt precedent and the wrong input. This is the one real piece of new work.
+
+### Modules to write
+
+| Module | Does | Size |
+|---|---|---|
+| `benchmark/evidence_pack.py` | For `(species, qtype)`, assemble evidence from the existing providers at two levels: `flora` (Manual fields only) and `full` (plus occurrences, parks, regions, terrain, global counts). Returns blocks plus a stable hash. | the real work |
+| `benchmark/prompts.py` | One template. Evidence block is the only variable. Abstention licence identical in every arm. | small |
+| `benchmark/arms/*.py` | One module per arm: `a1_closed`, `a2_closed`, `b_web`, `c_local`, `d_grounded`, `e_flora_only`, `f_local_grounded`, `g_template`. Each exposes `answer(question, ctx) -> str` and declares its model spec and evidence level. | small each |
+| `benchmark/run.py` | Generation. Keyed on `(qid, arm, replicate)`, append-only JSONL, resume, cost ceiling, `--dry-run` that prints prompts without calling. | medium |
+| `benchmark/score.py` | Wraps `verify.verify` over the answer rows. Separate stage, separately resumable. | small |
+| `benchmark/answerability.py` | Catalogue-wide C2 table, plus the use-mention detector that fixes the `uses = 0%` ambiguity. | small |
+| `benchmark/analyze.py` | Tables and figures from the verdict rows. | last |
+
+### Order of work
+
+Each step ends in something checkable, and nothing before step 8 costs money.
+
+| # | Step | Done when |
+|---|---|---|
+| 1 | Start Postgres; pull the second local model | `ollama list` shows two; `pg_store status` says running |
+| 2 | `answerability.py` + use-mention detector | the C2 table is measured, `uses` no longer ambiguous |
+| 3 | Figures 1, 2, 3 | three figures on disk, no model involved |
+| 4 | `evidence_pack.py` | for one species per question type, both levels print sensible blocks and stable hashes |
+| 5 | `prompts.py` + arms `g_template`, `a1_closed`, `c_local` | three arms answer one question each |
+| 6 | `run.py` with resume, ceiling, dry-run | `--dry-run` prints one prompt per stratum; arm parity readable by eye |
+| 7 | **Smoke test**: 20 questions x arms G, C, A1 end to end through `score.py` | verdicts land in JSONL; crash at row 10 resumes at row 10 |
+| 8 | Arms D, E, F, B, A2 | all eight arms answer the same question |
+| 9 | Checker validation: 40 hand labels against free-arm answers | Figure 10; checker trusted |
+| 10 | **Pilot**, 190 questions, all arms, metered | effect sizes measured; main-run size decided by the sec. 4b rule |
+| 11 | Expert light labels, high-priority key review | `light` becomes scoreable |
+| 12 | **Main run**, once | — |
+
+Steps 1 to 7 are the path to "we can run this". Step 7 is the moment the experiment
+becomes a button rather than a plan, and it costs nothing to reach: arms G and C are
+free, and A1 on twenty questions is pennies.
