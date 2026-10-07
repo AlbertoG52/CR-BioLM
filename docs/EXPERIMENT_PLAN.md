@@ -98,9 +98,10 @@ Consequences:
 
 - The answering arms should use **text models**. A vision-language model of the same
   size spends capacity on an encoder this experiment never exercises.
-- A **multimodal arm would be a different experiment** --- can a VLM read a distribution
-  map and answer correctly? --- with map images as stimuli and its own benchmark. Worth
-  a future-work sentence, not scope.
+- A **full multimodal arm would be a different experiment** --- can a VLM read a
+  distribution map and answer correctly? --- with map images as stimuli, its own power
+  budget and a third factor in the design. Out of scope. But see the ceiling check
+  below, which gets the useful part of that question for nothing.
 - Maps still belong in the paper as **output**: one qualitative figure showing a species'
   grounded answer beside its rendered occurrence map, from the existing renderer. That
   satisfies what a reader means by geospatial without putting pixels into the model.
@@ -117,6 +118,33 @@ elevation-band match, record count, and the explicit note that uneven collection
 means absence of records is not absence of the species.
 
 Getting that serialization right is worth more attention than the choice of model.
+
+### The map ceiling check (finding F8)
+
+The claim that spatial relations belong in the evidence layer rather than in a figure
+the model reads is currently prose. One bounded experiment makes it a number, and it
+costs no API spend.
+
+| | |
+|---|---|
+| Questions | **349** --- vertiente 98, park_possible 88, park_unlikely 85, park_confirmed 78 |
+| Maps to render | **98**, one per species, reused across that species' questions |
+| Model | `qwen3-vl:8b-instruct`, already installed, already multimodal |
+| Renderer | `scripts/render_maps_bulk.py`, already bulk with 8 workers |
+| API cost | none, it is local |
+
+The map image and the question, with no text evidence, scored against the same keys and
+compared per question with D and A1. It sits **outside the factorial** as a labelled
+side experiment, adding no arm and no third factor.
+
+All three outcomes are worth having. Map-reading close to D would mean the renderer is
+a sufficient interface and the architecture argument needs revising. Between A1 and D
+quantifies how much of the evidence the figure carries. Close to A1 is the expected
+result, and it retires the reviewer's question with a measurement instead of a claim.
+
+The map is rendered *from* the evidence pack, so a model reading it holds strictly less
+information than one reading the pack --- that is precisely why the comparison is a
+ceiling check and not a fair fight, and the paper should say so.
 
 ---
 
@@ -228,18 +256,52 @@ only in the answerability analysis (sec. 6), which is a database query, not a mo
 Counterintuitive, and it decides the budget. Pairs needed for 80% power at alpha 0.05,
 paired (McNemar), under the effect sizes we expect:
 
-| Contrast | Expected difference | Pairs needed |
-|---|---|---|
-| D vs A1 — grounded vs closed book | 30 pts | **28** |
-| G vs D — template vs grounded | 10 pts | 194 |
-| D vs B — grounded vs web search | 15 pts | 102 |
-| F vs D — local vs frontier, both grounded | 6 pts | 434 |
-| D vs E — full pack vs flora text only | 7 pts | 350 |
-| D vs E — if the gap is only 5 pts | 5 pts | **626** |
+| Contrast | Tested on | Expected difference | Pairs needed |
+|---|---|---|---|
+| D vs A1 — grounded vs closed book | all scoreable, 921 | 30 pts | **28** |
+| D vs B — grounded vs web search | all scoreable, 921 | 15 pts | 102 |
+| G vs D — template vs grounded | all scoreable, 921 | 10 pts | 194 |
+| F vs D — local vs frontier, both grounded | all scoreable, 921 | 6 pts | 434 |
+| **D vs E — the ablation** | **park types only, 251** | 30 pts | **37** |
 
-The headline result needs almost no data. The **ablation and the local-model contrast
-need nearly the whole set**, because they are the small effects. So the arms to put on
-a subset are the ones with large expected effects, not the ones that look expensive.
+The headline result needs almost no data. The **local-model contrast needs nearly the
+whole set**, because it is the small effect. So the arms to put on a subset are the
+ones with large expected effects, not the ones that look expensive.
+
+### The ablation must be tested on the questions its evidence can touch
+
+Not a refinement — testing D vs E over all 921 scoreable questions would have produced
+a null result from a real effect.
+
+E sees the flora text. For elevation, vertiente, flowering, endemism, growth form and
+cultivation, the Manual states the answer, so E holds the same evidence as D and the
+difference is **zero by construction**. The occurrence, protected-area and terrain layer
+only bites where the book is silent: the three park types, 251 questions.
+
+| | Questions |
+|---|---|
+| Park types, where E has no relevant evidence at all | **251** |
+| Types where D and E hold the same evidence | 572 |
+| `vertiente`, where D additionally sees record-derived regions | 98 |
+
+Averaging over the whole set dilutes the effect by the subset fraction, 251/921:
+
+| True gap on park questions | Pairs needed on the 251 | Diluted gap over 921 | Pairs needed over 921 |
+|---|---|---|---|
+| 40 pts | 24 | 10.9 pts | 202 |
+| 30 pts | 37 | 8.2 pts | 328 |
+| 20 pts | 66 | 5.5 pts | 670 |
+| 10 pts | 194 | 2.7 pts | **2,399 — infeasible** |
+
+So: **the pre-registered ablation test is the 251 park questions.** The full-set average
+is reported as secondary, with the dilution stated, because a reader will otherwise read
+it as the effect size.
+
+`vertiente` is held out of the primary test on purpose. D sees regions derived from
+occurrence records that may extend past the Manual's stated range, so the evidence does
+differ --- but the direction is not predicted, and records extending the range could
+move D *away* from a key the Manual defines. It is reported separately and labelled
+exploratory.
 
 What also forces the full set: the arm x question-type heatmap (Fig. 9) gives 93
 questions per type at n = 1,020 and only 37 at 40% of it, and the long-tail curve
@@ -326,6 +388,43 @@ review: absence from the record is not absence in the field.
 
 ---
 
+## 5b. The findings, pre-registered
+
+What the experiment tests, in one sentence: **whether a question about a Costa Rican
+plant can be answered truthfully**, separated into whether reliability depends on how
+well documented the species is, whether grounding in the published record fixes it, and
+whether any source could have answered at all.
+
+Each finding below is written as the sentence the paper will contain, with the measured
+quantity blank, together with the subset it is tested on and the result that would
+falsify it. Fixing these before the run is what makes them findings rather than
+observations.
+
+| | Finding | Tested on | Falsified by |
+|---|---|---|---|
+| **F1** | *"Closed-book accuracy falls by ___ points per order of magnitude of occurrence records, for a tropical flora queried in Spanish."* The premise: shown globally and closed-book by Dorm et al., not regionally and not in Spanish. | all scoreable, arms A1/A2/C | a flat slope — models would know rare species as well as common ones, and the paper's premise fails |
+| **F2** | *"The grounded system's accuracy does not depend on record count (slope ___, CI ___), where the closed-book slope is ___."* The headline. Note the claim is not that grounding is more accurate, but that it makes accuracy **stop depending on how well known the plant is**. | all scoreable, arm x log1p(records) interaction | D's slope being as steep as A1's |
+| **F3** | *"Occurrence, protected-area and terrain evidence adds ___ points on park questions, and ___ points where the flora already states the answer."* Your engineering, justified or not. | **251 park questions** (sec. 4b) | no difference on the park subset |
+| **F4** | *"A template answerer with no language model recovers ___% of the grounded system; a local 8B model over the same evidence recovers ___%."* | all scoreable, G and F against D | — both directions are informative |
+| **F5** | *"Closed-book systems asserted a use or light preference in ___% of cases where no source supports one; the grounded system abstained in ___%."* Measures not what a system answers but whether it knows to stop. | **93 questions** with `key_level = none` | every arm abstaining equally |
+| **F6** | *"The published flora settles elevation for 99.5% of species and uses for none."* | all 6,946 species, no model | already measured |
+| **F7** | *"___% of claims a naive checker would score as wrong are instead claims the record does not cover."* Where the two-level framework earns its keep. | all claims, `contradicted` vs `not_in_record` | the two categories being nearly the same size as each other in every arm |
+| **F8** | *"Reading the rendered map recovers ___% of what querying the data behind it recovers."* Buys the architecture claim in sec. 2b. | **349 spatial questions**, side experiment | map-reading matching D, which would mean the renderer is a sufficient interface |
+
+### The result most likely to be true, and whether we would publish it
+
+The outcome to bet on is that **G, the template, is strong on the six question types the
+Manual states outright and weak on the three park types**. If that holds, the
+contribution narrows from "grounded language-model QA for a flora" to "the evidence
+layer matters where the book is silent, and generation matters less than expected".
+
+That is a sharper paper and a less exciting one. For this journal it is also the more
+useful one: readers build tools, and "most of this is a database problem" tells them
+where to spend. The experiment is designed to be able to find it, so the decision to
+report it should be made now rather than when the numbers arrive.
+
+---
+
 ## 6. Analyses
 
 **Primary, pre-registered.** Mixed-effects logistic regression over scoreable questions:
@@ -402,6 +501,7 @@ Ordered by what they prove. The "needs" column is the gate.
 | 9 | Precision heatmap, arm x question type | where grounding helps (parks, elevation) and where nothing helps (light) | main run |
 | 10 | Checker validation: confusion matrix, checker verdict vs human verdict | that the measuring instrument is calibrated - without this a reviewer discounts everything | 40 hand labels `EXPERT` |
 | 11 | Cost / latency vs precision per arm | the deployability argument; this journal's readers run tools | metering `OPTIONAL` |
+| 11b | **Map ceiling check** (F8): precision on the 349 spatial questions for map-reading vs A1 vs D, plus one example map beside its grounded answer | that spatial relations belong in the evidence layer, measured rather than asserted | 98 maps + local VLM, no spend |
 | 12 | Spanish vs English, paired, same questions | whether the language penalty is real | subset run `OPTIONAL` |
 
 Tables: T1 data components `READY` - T2 the design matrix of sec. 2 - T3 question
@@ -565,6 +665,7 @@ Each step ends in something checkable, and nothing before step 8 costs money.
 | 7 | **Smoke test**: 20 questions x arms G, C, A1 end to end through `score.py` | verdicts land in JSONL; crash at row 10 resumes at row 10 |
 | 8 | Arms D, E, F, B, A2 | all eight arms answer the same question |
 | 9 | Checker validation: 40 hand labels against free-arm answers | Figure 10; checker trusted |
+| 9b | Map ceiling check: render 98 maps, run the local VLM over the 349 spatial questions | F8 measured, no spend |
 | 10 | **Pilot**, 190 questions, all arms, metered | effect sizes measured; main-run size decided by the sec. 4b rule |
 | 11 | Expert light labels, high-priority key review | `light` becomes scoreable |
 | 12 | **Main run**, once | — |
