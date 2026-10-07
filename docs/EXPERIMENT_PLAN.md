@@ -119,6 +119,43 @@ means absence of records is not absence of the species.
 
 Getting that serialization right is worth more attention than the choice of model.
 
+### Occurrence evidence fills gaps; it does not compete with a stated fact
+
+A rule the pack enforces, found by building the packs and reading one against its key.
+
+*Cryptocentrum flavum*: the elevation key is the Manual's 950-1050 m. The snapshot puts
+the species at 423-1248 m, in Valle del Coto Brus rather than the Manual's Cordillera de
+Talamanca, flowering in June rather than December. Every one of those is a true fact
+about the records, and every one contradicts a key the Manual defines. A pack containing
+both would measure which source a model privileges, not whether it answers truthfully,
+and the grounded arm would be penalised for using evidence we handed it.
+
+So for any question whose key is a stated Manual fact, occurrence evidence enters the
+pack **only when the Manual is silent** --- which is itself a real and measurable
+advantage for the grounded arm. For the park types the occurrence data *is* the key's
+basis, so it is always included.
+
+Verified over all 190 pilot questions: arms D and E receive byte-identical evidence on
+the eight Manual-stated types and differ only on the three park types, which is the
+structure sec. 4b pre-registers. The evidence layer's claim is therefore the sharp one
+--- it answers what the book cannot --- rather than a general accuracy boost.
+
+### Prompt size, measured
+
+Packs are far smaller than a whole flora entry, because blocks are selected per question
+type and the genus description is dropped unless it names a single growth form:
+
+| | characters | tokens |
+|---|---|---|
+| median full pack | 781 | ~250 |
+| p90 | 1,820 | ~590 |
+| worst case over the pilot | 2,612 | ~850 |
+
+With instructions and question, the longest prompt lands near 1,600 tokens, inside
+Ollama's 4,096 default. Set `OLLAMA_CONTEXT_LENGTH=16384` anyway for headroom and verify
+with `ollama ps`, since the `/v1` endpoint ignores `num_ctx` and truncates silently ---
+but silent truncation is no longer a live threat to arm F.
+
 ### The map ceiling check (finding F8)
 
 The claim that spatial relations belong in the evidence layer rather than in a figure
