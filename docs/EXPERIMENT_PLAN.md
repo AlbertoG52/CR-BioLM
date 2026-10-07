@@ -455,32 +455,45 @@ multiple-comparison field; no per-cell p-values in the headline claims).
 **Answerability (C2), no model involved.** Catalogue-wide, all 6,946 species - measured
 today:
 
-| Question type | Settled by the Manual | |
-|---|---|---|
-| morphology | 6,946 | 100.0% |
-| discussion / notes | 6,935 | 99.8% |
-| elevation | 6,912 | 99.5% |
-| habitat / forest type | 6,901 | 99.4% |
-| vertiente | 6,883 | 99.1% |
-| botanical regions | 6,762 | 97.4% |
-| flowering months | 6,626 | 95.4% |
-| growth form, own text | 6,614 | 95.2% |
-| fruiting months | 69 | **1.0%** |
-| **uses** | **0** | **0.0%** |
-| **light preference** | **0** | **0.0%** |
+Measured by `benchmark/answerability.py`, which **imports** the key predicates from
+`questions.py` rather than reimplementing them, so the table describes the benchmark
+that exists. Two denominators: the catalogue (6,946) for Manual-stated types, and the
+occurrence frame (6,917 species resolving to a GBIF accepted key, 99.6%) for the park
+types.
 
-Two findings in that table are the C2 result, and both are honest about the source: the
-Manual is a taxonomic treatment, so it settles where a plant grows almost always, and
-what it is good for never. A benchmark that asked only elevation questions would score
-any system at ceiling and miss this entirely.
+| Question type | Settled | Of | | What settles it |
+|---|---|---|---|---|
+| elevation | 6,912 | 6,946 | 99.5% | Manual elevation range |
+| cultivation | 6,912 | 6,946 | 99.5% | Manual elevation and slope |
+| vertiente | 6,883 | 6,946 | 99.1% | Manual slope statement |
+| endemism | 6,838 | 6,946 | 98.4% | ENDEMICA stated, or a range beyond Costa Rica |
+| flowering | 6,626 | 6,946 | 95.4% | Manual phenology |
+| park_possible | 6,209 | 6,917 | 89.8% | region and elevation overlap, no records |
+| park_unlikely | 5,873 | 6,917 | 84.9% | no overlap of either kind, no records |
+| growth_form | 5,855 | 6,946 | 84.3% | species description (5,031), else an unambiguous genus (824) |
+| park_confirmed | 5,458 | 6,917 | 78.9% | records inside the polygon since 1970 |
+| **outside_record** | **249** | 6,946 | **3.6%** | a use named in the Manual text |
+| **light** | **0** | 6,946 | **0.0%** | nothing in the record |
 
-Caveat to state in the paper rather than hide: `uses`, `global_range` and
-`common_names` are fields the extractor leaves to an LLM pass that has not been run
-(`field_extractor.py:10`), so 0% for `uses` currently conflates "the Manual is silent"
-with "we have not extracted it". The endemism key already works around this by reading
-the distribution paragraph directly. **Before this table goes in the paper, run the
-use-mention detector over the full catalogue and report the measured mention rate.**
-`BUILD`
+The Manual is a taxonomic treatment, so it settles where a plant grows for almost every
+species and what it is good for for almost none. A benchmark of elevation questions
+alone would score every system at ceiling and miss this entirely.
+
+**The `uses` ambiguity is resolved.** The empty `uses` field was an extraction gap, but
+the silence underneath it is real: counting the Manual's own use vocabulary finds 249
+species (3.6%) at the key's scope and 251 (3.6%) across the whole entry. The two scopes
+bracket tightly, so 3.6% is the Manual's actual coverage of use, not an artefact of what
+we did or did not extract. The paper reports 3.6%, not 0%.
+
+`growth_form` is 84.3%, not the 95.2% a looser predicate suggested. The keys read the
+first 160 characters of the species description plus a family default, and fall back to
+the genus only when it names a single growth form. That stricter rule is the right one
+--- it is what produced the correct *Stellaria media* key --- and the lower number is the
+honest one.
+
+`global_range` and `common_names` remain unextracted fields (`field_extractor.py:10`).
+Neither affects this table: the endemism key reads the distribution paragraph directly,
+and common names are not a question type.
 
 ---
 
