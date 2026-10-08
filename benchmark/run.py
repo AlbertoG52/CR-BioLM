@@ -177,6 +177,7 @@ def main() -> None:
                                "model_id": None, "model_version": None,
                                "provider_pinned": None, "served_by": None, "pin_held": None,
                                "prompt_tokens": None, "completion_tokens": None,
+                               "reasoning_tokens": None, "finish_reason": None,
                                "cost_usd": 0.0, "latency_ms": 0, "attempts": 1}
                     row = {**base, **res, "error": None}
                     wrote += 1

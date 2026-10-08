@@ -17,9 +17,16 @@ import requests
 from llm import providers as P
 
 SEED = 20260913          # same seed as the species sample, for no reason but tidiness
-TIMEOUT_S = 120
+TIMEOUT_S = 180
 RETRIES = 3
 BACKOFF_S = 4
+
+# Generous, because the paid generator is a REASONING model: on a short grounded
+# question it spent 301 of 335 completion tokens thinking, and at max_tokens=200 the
+# reasoning consumed the whole budget and the content came back empty. An empty answer
+# that scores as an abstention would be a silent data-quality failure, so the budget is
+# wide and `_empty_answer` below turns a blank completion into an error instead.
+MAX_TOKENS = 1400
 
 
 class CallError(RuntimeError):
@@ -27,7 +34,7 @@ class CallError(RuntimeError):
 
 
 def call(spec: str, messages: list[dict], *, pin: tuple[str, ...] = (),
-         temperature: float = 0.0, max_tokens: int = 700,
+         temperature: float = 0.0, max_tokens: int = MAX_TOKENS,
          seed: int | None = SEED) -> dict:
     """Issue one call. Raises CallError after RETRIES failures."""
     prov = P.resolve(spec, pin=pin)
@@ -66,6 +73,18 @@ def call(spec: str, messages: list[dict], *, pin: tuple[str, ...] = (),
             text = (choices[0].get("message") or {}).get("content") or ""
             usage = j.get("usage") or {}
             served = P.served_by(j)
+            finish = choices[0].get("finish_reason")
+            if not text.strip():
+                # Never record a blank as an answer: it would score as an abstention and
+                # quietly become a result. Retry, then fail loudly.
+                last = (f"empty content (finish_reason={finish}, "
+                        f"reasoning_tokens="
+                        f"{(usage.get('completion_tokens_details') or {}).get('reasoning_tokens')})")
+                if attempt < RETRIES:
+                    body["max_tokens"] = int(body.get("max_tokens", MAX_TOKENS) * 1.5)
+                    time.sleep(BACKOFF_S)
+                    continue
+                raise CallError(f"{spec}: {last}")
             return {
                 "answer_text": text.strip(),
                 "model_id": spec,
@@ -77,6 +96,9 @@ def call(spec: str, messages: list[dict], *, pin: tuple[str, ...] = (),
                               {p.lower() for p in pin})),
                 "prompt_tokens": usage.get("prompt_tokens"),
                 "completion_tokens": usage.get("completion_tokens"),
+                "reasoning_tokens": (usage.get("completion_tokens_details") or {})
+                                    .get("reasoning_tokens"),
+                "finish_reason": finish,
                 "cost_usd": usage.get("cost"),
                 "latency_ms": latency_ms,
                 "attempts": attempt,
