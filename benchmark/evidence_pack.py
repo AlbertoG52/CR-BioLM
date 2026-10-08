@@ -33,11 +33,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from mpcr_rag.ingest.field_extractor import _match_habits
 from mpcr_rag.schema import Ficha
+
+from .questions import _RANGE_BEYOND_CR, _USE_CUE
 from mpcr_rag.store import pg_store
 
 MONTHS_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
@@ -50,12 +53,19 @@ EFFORT_CAVEAT = ("El esfuerzo de colecta es desigual: la ausencia de registros e
 
 @dataclass
 class Pack:
-    """Evidence for one (species, question type) at one level."""
+    """Evidence for one (species, question type) at one level.
+
+    ``blocks`` is the prose a model reads. ``facts`` is the same evidence as structured
+    values, for the template arm G. They are populated from one pass over one ficha, so
+    arm G is provably reading the same evidence as arms D and F rather than a
+    convenient subset -- which is what makes G a fair floor instead of a straw man.
+    """
     species: str
     qtype: str
     level: str
     blocks: list[tuple[str, str]] = field(default_factory=list)
     providers: list[str] = field(default_factory=list)
+    facts: dict = field(default_factory=dict)
 
     def add(self, heading: str, body: str | None) -> None:
         if body:
@@ -139,6 +149,21 @@ def _eff(f: Ficha) -> tuple[int, int] | None:
     lo = f.elev_outlier_min if f.elev_outlier_min is not None else f.elev_min
     hi = f.elev_outlier_max if f.elev_outlier_max is not None else f.elev_max
     return lo, hi
+
+
+
+def _range_beyond(f: Ficha) -> str | None:
+    """Only the part of the distribution that names territory OUTSIDE Costa Rica.
+
+    The whole tail after the habitat clause still lists Costa Rican regions, so quoting
+    it to justify "not endemic" drags in local place names that then read as unsupported
+    distribution claims. Return the narrowest segment that actually carries the
+    beyond-CR evidence.
+    """
+    tail = f.distribution_paragraph.split(";", 1)[-1]
+    segs = [s.strip() for s in re.split(r"(?<=\.)\s+", tail) if s.strip()]
+    hits = [s for s in segs if _RANGE_BEYOND_CR.search(s)]
+    return min(hits, key=len) if hits else None
 
 
 def _cite(f: Ficha) -> str:
@@ -283,6 +308,22 @@ def build(cur, species: str, qtype: str, *, level: str = "full",
     pack = Pack(species=species, qtype=qtype, level=level)
     pack.providers.append("MPCR catalogue")
 
+    eff_rng = _eff(f)
+    pack.facts = {
+        "species": f.species, "cita": _cite(f), "family": f.family,
+        "elev_min": f.elev_min, "elev_max": f.elev_max,
+        "elev_effective": list(eff_rng) if eff_rng else None,
+        "vertientes": list(f.vertientes or []), "regions": list(f.regions or []),
+        "forest_types": list(f.forest_types or []),
+        "flowering_months": list(f.flowering_months or []),
+        "growth_form": _growth_form_text(f), "endemic_cr": bool(f.endemic_cr),
+        "range_tail": f.distribution_paragraph.split(";", 1)[-1].strip(),
+        "range_beyond": _range_beyond(f),
+        "habitat_sentence": f.distribution_paragraph.split(";")[0].strip(),
+        "use_cues": " ".join(m.group(0) for m in
+                             _USE_CUE.finditer(f"{f.discussion} {f.distribution_paragraph}")) or None,
+    }
+
     wanted = list(_FLORA_BLOCKS[qtype])
     if level == "full":
         wanted += list(_FULL_EXTRA[qtype])
@@ -329,6 +370,17 @@ def build(cur, species: str, qtype: str, *, level: str = "full",
             if place:
                 n70, n_all = _records_in_place(cur, _taxon_key(cur, species), place_code)
                 pack.add("área protegida consultada", _park_block(f, place, n70, n_all))
+                sp_r, pk_r = set(f.regions or []), set(place["regions"] or [])
+                pack.facts["place"] = {
+                    "label": place["label"], "code": place["code"],
+                    "elev_p05": round(place["lo"]), "elev_p95": round(place["hi"]),
+                    "regions": list(place["regions"] or []),
+                    "n_records": n_all, "n_since_1970": n70,
+                    "region_overlap": bool(sp_r & pk_r),
+                    "shared_regions": sorted(sp_r & pk_r),
+                    "elev_overlap": bool(eff_rng is not None
+                                         and place["lo"] <= eff_rng[1] and place["hi"] >= eff_rng[0]),
+                }
                 pack.providers += ["SINAC protected areas", "MPCR regions + elevation",
                                    "GBIF snapshot 10.15468/dl.8yhee8", "DEM"]
 

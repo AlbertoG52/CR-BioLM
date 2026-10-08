@@ -206,9 +206,23 @@ def _regions_named(text: str) -> set[str]:
 
 # ------------------------------------------------------------------------ claim checks
 
+# A claim whose subject is the asked-about SITE, not the species. The cultivation
+# questions state the farm's elevation in the prompt ("una finca ... unos 1400 m"), and
+# a good grounded answer restates it. Checked naively, that elevation is compared with
+# the species' range and scored "contradicted" -- penalising exactly the behaviour we
+# want. Such a restatement is not a claim about the record, so it is not checkable:
+# this is the "is this even a checkable statement" gate that AIS puts before support.
+_SITE_SUBJECT = re.compile(
+    r"\b(el|ese|este|dicho)\s+(sitio|lugar|punto|terreno)\b"
+    r"|\bla\s+(finca|propiedad|zona|ubicaci[óo]n|localidad)\s+(indicada|se[ñn]alada|mencionada)?\b"
+    r"|\bel\s+[áa]rea\s+indicada\b", re.I)
+
+
 def check_claim(claim: dict, rec: Record) -> str:
     text, ctype = claim.get("text", ""), claim.get("type", "other")
     f = rec.ficha
+    if ctype == "elevation" and _SITE_SUBJECT.search(text):
+        return "unverifiable"
     # Route by content, not only by the model's label: "Crece en la vertiente Caribe"
     # typed as a place is a slope claim.
     if ctype in ("place", "other") and parse_slopes(text) and not _regions_named(text):

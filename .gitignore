@@ -59,3 +59,7 @@ experiment/report/
 
 # Archivos de especies para pruebas locales
 experiment/test_species*.txt
+
+# generated run artefacts (regenerate with benchmark.run / benchmark.score)
+benchmark/data/answers_*.jsonl
+benchmark/data/verdicts_*.jsonl
