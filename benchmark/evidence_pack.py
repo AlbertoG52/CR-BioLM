@@ -31,6 +31,7 @@ Run:  python -m benchmark.evidence_pack --species "Heliconia rodriguezii" --qtyp
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import hashlib
 import json
 import re
@@ -297,14 +298,24 @@ _OCC_GATE = {
 
 
 def build(cur, species: str, qtype: str, *, level: str = "full",
-          place_code: str | None = None) -> Pack:
-    """Assemble the pack for one question. ``place_code`` is required for park types."""
+          place_code: str | None = None, overrides: dict | None = None,
+          place_overrides: dict | None = None) -> Pack:
+    """Assemble the pack for one question. ``place_code`` is required for park types.
+
+    ``overrides`` patches ficha fields and ``place_overrides`` patches the protected-area
+    row before any block is written. Both exist for the counterfactual condition
+    (finding F10, see benchmark/counterfactual.py): altering one fact and re-asking is
+    how we tell an answer that USES the evidence from one that merely cites it. Nothing
+    in the normal path passes either, so pack hashes are unaffected.
+    """
     if level not in ("flora", "full"):
         raise ValueError(f"level must be 'flora' or 'full', got {level!r}")
     if qtype not in _FLORA_BLOCKS:
         raise ValueError(f"unknown qtype {qtype!r}")
 
     f = _ficha(cur, species)
+    if overrides:
+        f = dataclasses.replace(f, **overrides)
     pack = Pack(species=species, qtype=qtype, level=level)
     pack.providers.append("MPCR catalogue")
 
@@ -320,6 +331,7 @@ def build(cur, species: str, qtype: str, *, level: str = "full",
         "range_tail": f.distribution_paragraph.split(";", 1)[-1].strip(),
         "range_beyond": _range_beyond(f),
         "habitat_sentence": f.distribution_paragraph.split(";")[0].strip(),
+        "_distribution_paragraph": f.distribution_paragraph,
         "use_cues": " ".join(m.group(0) for m in
                              _USE_CUE.finditer(f"{f.discussion} {f.distribution_paragraph}")) or None,
     }
@@ -367,8 +379,13 @@ def build(cur, species: str, qtype: str, *, level: str = "full",
             if not place_code:
                 raise ValueError(f"{qtype} needs place_code")
             place = _place(cur, place_code)
+            if place and place_overrides:
+                place = {**place, **place_overrides}
             if place:
                 n70, n_all = _records_in_place(cur, _taxon_key(cur, species), place_code)
+                if place_overrides and "n_since_1970" in place_overrides:
+                    n70 = place_overrides["n_since_1970"]
+                    n_all = place_overrides.get("n_records", n70)
                 pack.add("área protegida consultada", _park_block(f, place, n70, n_all))
                 sp_r, pk_r = set(f.regions or []), set(place["regions"] or [])
                 pack.facts["place"] = {
