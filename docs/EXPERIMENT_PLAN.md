@@ -185,6 +185,109 @@ ceiling check and not a fair fight, and the paper should say so.
 
 ---
 
+## 2c. Models: two generators, one segmenter, nothing judging
+
+Everything paid goes through **OpenRouter**, which is already the only remote provider
+`llm/providers.py` resolves. The Groq key in `.env` is legacy --- `judge_client.py:379`
+says it is ignored and all judges moved to OpenRouter.
+
+### The inventory
+
+| Role | Model | Arms | Cost |
+|---|---|---|---|
+| Paid generator | `mistralai/mistral-large-4-0` | A1, B, D, E | $1.82 / 1k calls -> **~$6** for all 3,400 |
+| Open-weights generator | `google/gemma-4-31b-it` | C, F, and the F8 map check | $0.26 / 1k -> **~$1** |
+| Claim segmenter | `ollama:qwen3-vl:8b-instruct`, local | the verifier, no arm | free |
+| --- | no model | G, the template arm | free |
+
+**Two generator models, not eight.** Arm A2 dissolves: it was "a second vendor, closed
+book", which is exactly what arm C now is. The factorial loses a row and nothing else:
+
+|  | no evidence | live web | flora only | full pack |
+|---|---|---|---|---|
+| Mistral Large 4 (paid) | A1 | B | E | D |
+| Gemma 4 31B (open weights) | C | -- | -- | F |
+| template, no model | -- | -- | -- | G |
+
+Seven arms. Total paid spend for the main run: **about $7**, against the $42 the earlier
+plan assumed.
+
+### Why these two
+
+**Both accept `seed` and `temperature`.** This is not a detail. The Claude 5 flagships
+accept *neither*, and the GPT-5 line accepts `seed` but not `temperature` --- so sec. 3
+rule 5, temperature zero for the headline run, would have been unenforceable with the
+obvious choices. Every Mistral model supports both.
+
+**Different vendors.** Mistral (France) against Google splits the pretraining lineage,
+so F1 is not a claim about one company's model.
+
+**Open weights on one arm.** Downloadable weights make arm C/F reproducible
+indefinitely and carry the deployability sentence: 31B dense self-hosts at 4-bit. The
+cheaper 120B and 550B open models do not.
+
+**Both multimodal, which is what makes F8 clean.** Running the map check on `qwen3-vl`
+while the grounded arm ran on something else would confound model with modality. Same
+model reading the map and reading the pack makes F8 a within-model contrast, and on the
+open model it costs nothing.
+
+### Pinning the upstream, and why it is not optional
+
+OpenRouter is a router. `google/gemma-4-31b-it` is served by **13 upstream endpoints**
+at **fp4, fp8 and bf16**, with context lengths from 131k to 262k. Unpinned, the router
+picks one per request with silent fallbacks --- so "we used gemma-4-31b-it" can mean a
+4-bit deployment on one call and full bf16 on the next. Those are not the same model
+numerically, and no reader could reproduce the mixture.
+
+| Model | Upstreams | Pin | Why |
+|---|---|---|---|
+| `mistralai/mistral-large-4-0` | 1 (Mistral) | `["Mistral"]` | first-party only; no quantization lottery to begin with |
+| `google/gemma-4-31b-it` | 13 | `["Crusoe"]` | **bf16**, 262k context --- matches what someone downloading the weights would run |
+
+Pinning `bf16` rather than the cheaper `fp4` is the whole point: the open arm has to be
+the published weights, not a quantization of them. `Provider.routing()` emits the pin
+with `allow_fallbacks: false`, and `served_by()` records which upstream actually
+answered. A run where the two disagree is discarded.
+
+### No judge, and no evaluator
+
+Paper 1 scored answers with an LLM judge --- `judge_client.py`, an ensemble of three
+models over a Spanish rubric, with a `_generator_family` self-enhancement guard because
+a judge that shares a family with the generator flatters it.
+
+**Paper 2 has no judge.** Nothing scores quality. The pipeline is:
+
+1. **Level 1, the direct verdict.** The key is typed data --- a range, a month list, a
+   set of slopes, a yes/posible/improbable. A local model extracts *what the answer
+   asserted*; `_STANCE_TABLE` and the deterministic parsers in `verify.py` then decide
+   correctness against the key. The model reports, it does not adjudicate.
+2. **Level 2, per claim.** A local model splits the answer into claims. Every number,
+   month, slope and growth form is re-parsed from the claim *text* by regex and checked
+   against the record. The model's own judgement of a claim is never used.
+3. **Humans** adjudicate the residue: the ~150 sampled `unverifiable` claims, where only
+   a botanist can separate real knowledge the record lacks from invention.
+
+So the only model in the evaluation path is a **segmenter**, it is neither generator,
+and it never assigns a score. That removes the whole family of LLM-as-judge objections
+--- verbosity bias, position bias, self-enhancement --- that Paper 1 had to guard
+against, and it is worth one sentence in the methods for exactly that reason.
+
+What still needs validating is the extraction step, not a judgement: the checker
+reproduces 24/24 and 12/12 hand-written calibration cases today, and step 9 tests it
+against 40 hand-labelled real answers.
+
+### Still open
+
+- **A flagship spot-check.** A reviewer may ask whether the strongest available model
+  would have failed closed-book too. 100 questions on a flagship answers it as a
+  methods footnote for well under a dollar. Recommended.
+- **A 20-question bake-off** across Mistral Large 4, Gemini 3.8 Flash and Qwen3.7 Max
+  before committing, because nobody here has Spanish-quality data on them. 60 calls,
+  cents, and the choice becomes citable rather than asserted.
+- **Arm B's search backend.** No `:online` model ids exist any more, so web search is a
+  request-time plugin. Whatever serves it becomes part of the system under test and has
+  to be named in the methods.
+
 ## 3. What is held constant (the confound that already bit us once)
 
 The tier-ablation prompt bug is the precedent: arms differed in more than the thing
@@ -346,21 +449,21 @@ questions per type at n = 1,020 and only 37 at 40% of it, and the long-tail curv
 
 ### Recommended main run
 
-| Arm | Questions | Units | Spend |
-|---|---|---|---|
-| A1 frontier, closed book | 1,020 | 1,020 | paid, cheapest prompt |
-| D frontier, full pack | 1,020 | 1,020 | paid |
-| E frontier, flora only | 1,020 | 1,020 | paid |
-| C local, closed book | 1,020 | 1,020 | free, local |
-| F local, full pack | 1,020 | 1,020 | free, local |
-| G template, no model | 1,020 | 1,020 | free, instant |
-| B frontier + web | **340** subset | 340 | paid, dearest per call |
-| A2 second vendor, closed book | **340** subset | 340 | paid |
-| | | **6,800 units** | **about 3,740 paid calls, about $42** |
+| Arm | Model | Questions | Units | Spend |
+|---|---|---|---|---|
+| A1 closed book | Mistral Large 4 | 1,020 | 1,020 | paid |
+| D full pack | Mistral Large 4 | 1,020 | 1,020 | paid |
+| E flora only | Mistral Large 4 | 1,020 | 1,020 | paid |
+| C closed book | Gemma 4 31B, open weights | 1,020 | 1,020 | ~$0.27 |
+| F full pack | Gemma 4 31B, open weights | 1,020 | 1,020 | ~$0.27 |
+| G template | none | 1,020 | 1,020 | free, instant |
+| B web search | Mistral Large 4 | **340** subset | 340 | paid, dearest per call |
+| | | | **6,460 units** | **~3,400 paid calls, about $7** |
 
-B and A2 drop to a stratified 340-question subset because both contrasts they serve
-need around 100 pairs or fewer. B is the most expensive call in the experiment and the
-one least worth paying for at full size.
+B drops to a stratified 340-question subset because the D-vs-B contrast needs around
+100 pairs and B is the most expensive call in the experiment. Arm A2 is gone: it was
+"a second vendor, closed book", which is what arm C is now that the open-weights
+generator is a different vendor rather than a local-only fallback (sec. 2c).
 
 Verification is 6,800 minus arm G, whose answers are deterministic and whose claims are
 known by construction: about 5,780 LLM extractions, roughly 8 hours, overnight.
@@ -593,9 +696,14 @@ benchmark/analyze.py   verdicts               -> tables + figures
 ```
 
 Every answer row carries: `qid`, `arm`, `replicate`, `model_id`, `model_version`,
-`prompt_template_hash`, `evidence_pack_hash`, `evidence_providers[]`,
-`retrieved_urls[]` (arm B), `prompt_tokens`, `completion_tokens`, `cost_usd`,
-`latency_ms`, `started_at`, `answer_text`, `error`.
+`provider_pinned`, `served_by`, `prompt_template_hash`, `evidence_pack_hash`,
+`evidence_providers[]`, `retrieved_urls[]` (arm B), `prompt_tokens`,
+`completion_tokens`, `cost_usd`, `latency_ms`, `started_at`, `answer_text`, `error`.
+
+`provider_pinned` is the upstream we demanded; `served_by` is the one that answered.
+Both are recorded because they can disagree, and a run where they disagree is a run to
+discard. `providers.py::Provider.routing()` emits the pin and `providers.py::served_by()`
+reads the response back.
 
 Non-negotiable properties:
 
@@ -644,9 +752,11 @@ natural checkpoint to stop and look.
 
 ## 12. Decisions still open
 
-1. **Which frontier model**, and whether A2 (second vendor) is worth about $6.
-   Recommend yes: it is the cheapest defence against "you tested one model".
-2. **Which local model** for C and F - and it must differ from the verifier's extractor.
+1. ~~Which frontier model~~ and ~~which local model~~ --- **settled in sec. 2c**:
+   `mistralai/mistral-large-4-0` pinned to Mistral, and `google/gemma-4-31b-it` pinned
+   to a bf16 upstream. Both accept `seed` and `temperature`; the obvious flagships do
+   not. What remains is the 20-question bake-off to confirm Spanish quality, and
+   whether to buy the flagship closed-book spot-check (~$1).
 3. **Whether D+SDM becomes an arm.** Recommend yes if time allows; it is what makes the
    thesis a single piece of work.
 4. **Spanish-vs-English** (Fig 12): in or out.
