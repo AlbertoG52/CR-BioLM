@@ -134,6 +134,7 @@ def render(species: str, place_code: str | list[str] | None = None, *,
     # regions, not which ones they are. For a question about slope or region the caller
     # passes nothing, because there the identity of the region IS the answer.
     drawn_regions, missing_regions = [], []
+    band_clip = None
     if highlight_regions:
         have = {str(n): n for n in regions["Nombre"].dropna().unique()}
         for want in highlight_regions:
@@ -146,10 +147,17 @@ def render(species: str, place_code: str | list[str] | None = None, *,
             sel = regions[regions["Nombre"].isin(drawn_regions)]
             sel.plot(ax=ax, facecolor=REGIONS, edgecolor=REGIONS, linewidth=1.0,
                      alpha=0.26, zorder=2)
+            # The elevation band is clipped to these regions, not drawn across the
+            # country. Terrain at 2,200 m in Guanacaste says nothing about a species
+            # reported only from the Cordillera Central, and showing it invites a model
+            # to read habitat where there is none. Region INTERSECTED with band is the
+            # potential habitat, which is what the validated expert map shows.
+            band_clip = sel
     shown["regions_drawn"] = drawn_regions
     shown["regions_missing"] = missing_regions
 
-    band = _elevation_band(regions, elev_min, elev_max)
+    band = _elevation_band(band_clip if band_clip is not None else regions,
+                           elev_min, elev_max)
     if band is not None:
         inside, extent = band
         ax.imshow(np.ma.masked_where(~inside, inside.astype(float)), extent=extent,
@@ -198,8 +206,10 @@ def render(species: str, place_code: str | list[str] | None = None, *,
         handles.append(Patch(facecolor=colour, edgecolor=colour, alpha=0.6,
                              label=(f"{letter} · {name}" if letter else name)))
     if shown["band_drawn"]:
-        handles.append(Patch(facecolor=BAND, edgecolor=BAND, alpha=0.55,
-                             label=f"Terreno entre {int(elev_min)} y {int(elev_max)} m"))
+        label = (f"Hábitat potencial: {int(elev_min)}-{int(elev_max)} m dentro de esas "
+                 f"regiones" if drawn_regions
+                 else f"Terreno entre {int(elev_min)} y {int(elev_max)} m")
+        handles.append(Patch(facecolor=BAND, edgecolor=BAND, alpha=0.55, label=label))
     leg = ax.legend(handles=handles, loc="lower right", facecolor="#1f242e",
                     edgecolor="#39404d", labelcolor="#e6e8ec", fontsize=10)
     leg.set_zorder(7)
