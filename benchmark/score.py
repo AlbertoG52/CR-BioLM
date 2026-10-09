@@ -20,6 +20,8 @@ import argparse
 import collections
 import io
 import json
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from mpcr_rag.store import pg_store
@@ -49,6 +51,9 @@ def main() -> None:
     ap.add_argument("--extractor", default=V.EXTRACTOR)
     ap.add_argument("--fresh", action="store_true")
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--workers", type=int, default=4,
+                    help="concurrent segmenter calls; only helps if the Ollama server "
+                         "allows it (OLLAMA_NUM_PARALLEL)")
     args = ap.parse_args()
 
     answers = _jsonl(DATA / f"answers_{args.part}.jsonl")
@@ -76,18 +81,34 @@ def main() -> None:
     print(f"answers={len(answers)}  already scored={len(done)}  to score={len(todo)}  "
           f"unusable={skipped}")
 
+    todo = [a for a in todo if a["qid"] in questions]
+
+    def _segment(a: dict):
+        # The only slow step, and the only one that runs off the main thread. It
+        # returns the exception rather than raising so one timeout cannot take the
+        # pool down with it.
+        try:
+            return a, V.extract(questions[a["qid"]]["question"], a["answer_text"],
+                                args.extractor), None
+        except Exception as e:
+            return a, None, e
+
     conn = pg_store.connect()
     tally: collections.Counter = collections.Counter()
     fh = io.open(out, "a", encoding="utf-8")
     n = fail = 0
+    t0 = time.time()
+    pool = ThreadPoolExecutor(max_workers=max(1, args.workers))
     try:
         with conn.cursor() as cur:
-            for i, a in enumerate(todo, 1):
-                q = questions.get(a["qid"])
-                if not q:
-                    continue
+            futures = [pool.submit(_segment, a) for a in todo]
+            for i, fut in enumerate(as_completed(futures), 1):
+                a, ext, err = fut.result()
+                q = questions[a["qid"]]
                 try:
-                    v = V.verify(q, a["answer_text"], cur, spec=args.extractor)
+                    if err is not None:
+                        raise err
+                    v = V.verify_extracted(q, a["answer_text"], ext, cur)
                     row = {"qid": a["qid"], "arm": a["arm"],
                            "replicate": a.get("replicate", 0),
                            "species": a.get("species"), "qtype": a.get("qtype"),
@@ -110,8 +131,10 @@ def main() -> None:
                 fh.write(json.dumps(row, ensure_ascii=False) + "\n")
                 fh.flush()
                 if i % 10 == 0 or i == len(todo):
-                    print(f"  {i}/{len(todo)}  scored={n} fail={fail}")
+                    print(f"  {i}/{len(todo)}  scored={n} fail={fail}  "
+                          f"{(time.time() - t0) / i:.1f} s/answer", flush=True)
     finally:
+        pool.shutdown(wait=False, cancel_futures=True)
         fh.close()
         conn.close()
 

@@ -26,7 +26,7 @@ BACKOFF_S = 4
 # reasoning consumed the whole budget and the content came back empty. An empty answer
 # that scores as an abstention would be a silent data-quality failure, so the budget is
 # wide and `_empty_answer` below turns a blank completion into an error instead.
-MAX_TOKENS = 1400
+MAX_TOKENS = 2400
 
 
 class CallError(RuntimeError):

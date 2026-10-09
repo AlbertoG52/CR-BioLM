@@ -351,7 +351,13 @@ def check_direct(q: dict, answer: str, ext: dict) -> str:
 
 
 def verify(q: dict, answer: str, cur, spec: str = EXTRACTOR) -> dict:
-    ext = extract(q["question"], answer, spec)
+    return verify_extracted(q, answer, extract(q["question"], answer, spec), cur)
+
+
+def verify_extracted(q: dict, answer: str, ext: dict, cur) -> dict:
+    """Everything after segmentation. Split out so score.py can run the model call
+    concurrently while the checks stay in one thread: `_regions_named` redirects
+    stdout, which is process-wide and not safe to do from several threads at once."""
     rec = load_record(cur, q["species"])
     claims = [{**c, "verdict": check_claim(c, rec)} for c in ext["claims"]]
     counts = {v: sum(1 for c in claims if c["verdict"] == v)
