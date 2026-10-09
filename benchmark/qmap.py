@@ -29,6 +29,7 @@ Run:  python -m benchmark.qmap --species "Cryptocentrum flavum" --place-code P18
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -72,6 +73,7 @@ POINTS = "#d55181"        # magenta, the focal data
 AREA_FALLBACK = "#3987e5"              # blue, the asked-about protected area
 AREA_COLORS = ["#3987e5"]
 REGIONS = "#008300"       # green, the botanical regions the Manual reports
+OTHER_AREA = "#c9cfd8"   # neutral outline: an annotation, not a category
 BAND = "#9aa1ad"          # achromatic on purpose (C=0.02): terrain, not a category
 # magenta / blue / green validated all-pairs on this surface: worst normal-vision
 # Delta E 26.5, worst CVD 11.3. That is the whole budget -- three identities.
@@ -112,13 +114,20 @@ def render(species: str, place_code: str | list[str] | None = None, *,
            out_path: Path | None = None) -> tuple[Path, dict]:
     """Render the stimulus. Returns the path and what the image actually shows, so a
     run can record whether the park and the band made it onto the picture."""
+    zone = species_zone(species)
+    if highlight_regions is None and zone['regions']:
+        highlight_regions = zone['regions']
+    if elev_min is None:
+        elev_min, elev_max = zone['elev_min'], zone['elev_max']
+    zone_parks = parks_in_zone(zone['regions'], zone['elev_min'], zone['elev_max'])
     regions = load_regiones_botanicas().to_crs(4326)
     pts = get_points(species)
     codes = ([place_code] if isinstance(place_code, str)
              else list(place_code or []))
     shown = {"species": species, "place_code": codes,
              "n_points": 0 if pts is None or pts.empty else len(pts),
-             "park_drawn": False, "park_label": None, "band_drawn": False}
+             "park_drawn": False, "park_label": None, "band_drawn": False,
+             "other_areas": [], "zone_source": None}
 
     fig, ax = plt.subplots(figsize=(9.5, 10), dpi=130)
     fig.patch.set_facecolor(BG)
@@ -153,6 +162,7 @@ def render(species: str, place_code: str | list[str] | None = None, *,
             # to read habitat where there is none. Region INTERSECTED with band is the
             # potential habitat, which is what the validated expert map shows.
             band_clip = sel
+    shown["zone_source"] = zone["source"]
     shown["regions_drawn"] = drawn_regions
     shown["regions_missing"] = missing_regions
 
@@ -165,6 +175,48 @@ def render(species: str, place_code: str | list[str] | None = None, *,
                   alpha=0.45, zorder=2, interpolation="nearest")
         shown["band_drawn"] = True
 
+    # Every protected area whose regions and elevation profile meet the species' zone,
+    # drawn as context. The question names one park, but a map showing only that one
+    # tells a reader nothing about whether it is a likely place among many or the only
+    # candidate in the country.
+    #
+    # These use a neutral outline rather than a colour: the palette budget on this
+    # surface is three identities and all three are spent (records, the asked area, the
+    # reported regions). An outline is an annotation, not a category.
+    #
+    # The asked-about area is ALWAYS drawn, in its own colour, whether or not it meets
+    # the zone. Drawing only the overlapping ones would make an unlikely park vanish
+    # from the picture, and its absence would hand over the answer.
+    if zone_parks:
+        asked = set(codes or [])
+        others = [p for p in zone_parks if p["code"] not in asked]
+        if others:
+            pa_all = _places()
+            by_code = {c: g for c, g in zip(pa_all["codigo"], pa_all.geometry)}
+            named = []
+            for p in others:
+                geom = by_code.get(p["code"])
+                if geom is None:
+                    continue
+                import geopandas as _gpd
+                _gpd.GeoSeries([geom], crs=4326).boundary.plot(
+                    ax=ax, color=OTHER_AREA, linewidth=1.0, linestyle="--",
+                    alpha=0.8, zorder=3)
+                # A letter on the polygon, spelled out in the legend. An unnamed
+                # outline is useless to a vision model: it has to identify the area to
+                # reason about it, and would otherwise guess from position or mistake
+                # it for the one the question asks about. A one-character chip names it
+                # at any count, where the full park name collides past a single area.
+                letter = chr(ord("A") + len(named))
+                c = geom.representative_point()
+                ax.annotate(letter, xy=(c.x, c.y), ha="center", va="center",
+                            color="#11151c", fontsize=8.5, fontweight="bold", zorder=6,
+                            bbox=dict(boxstyle="circle,pad=0.22", facecolor=OTHER_AREA,
+                                      edgecolor="none", alpha=0.9))
+                named.append((letter, p["label"]))
+            shown["other_areas"] = [f"{l} · {n}" for l, n in named]
+            shown["_other_named"] = named
+
     drawn_areas: list[tuple[str, str, str | None]] = []   # (colour, name, letter)
     if codes:
         pa = _places()
@@ -176,7 +228,7 @@ def render(species: str, place_code: str | list[str] | None = None, *,
             colour = AREA_FALLBACK if lettered else AREA_COLORS[i]
             row.plot(ax=ax, facecolor=colour, edgecolor=colour, linewidth=2.2,
                      alpha=0.28, zorder=3)
-            row.boundary.plot(ax=ax, color=colour, linewidth=2.2, zorder=4)
+            row.boundary.plot(ax=ax, color=colour, linewidth=3.0, zorder=5)
             letter = None
             if lettered:
                 # Past two areas colour stops separating them, so a short chip on the
@@ -202,6 +254,9 @@ def render(species: str, place_code: str | list[str] | None = None, *,
     if drawn_regions:
         handles.append(Patch(facecolor=REGIONS, edgecolor=REGIONS, alpha=0.6,
                              label="Regiones botánicas donde se reporta la especie"))
+    for letter, name in shown.get("_other_named", []):
+        handles.append(Line2D([], [], color=OTHER_AREA, linestyle="--", linewidth=1.2,
+                              label=f"{letter} · {name}"))
     for colour, name, letter in drawn_areas:
         handles.append(Patch(facecolor=colour, edgecolor=colour, alpha=0.6,
                              label=(f"{letter} · {name}" if letter else name)))
@@ -210,25 +265,97 @@ def render(species: str, place_code: str | list[str] | None = None, *,
                  f"regiones" if drawn_regions
                  else f"Terreno entre {int(elev_min)} y {int(elev_max)} m")
         handles.append(Patch(facecolor=BAND, edgecolor=BAND, alpha=0.55, label=label))
-    leg = ax.legend(handles=handles, loc="lower right", facecolor="#1f242e",
-                    edgecolor="#39404d", labelcolor="#e6e8ec", fontsize=10)
+    # Outside the axes. Inside, a nineteen-area legend covered the Osa peninsula and
+    # hid occurrence records behind itself -- the stimulus must never occlude its own
+    # evidence.
+    ncol = 2 if len(handles) > 9 else 1
+    leg = ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.06),
+                    facecolor="#1f242e", edgecolor="#39404d", labelcolor="#e6e8ec",
+                    fontsize=9 if ncol == 2 else 10, ncol=ncol, frameon=True)
     leg.set_zorder(7)
 
     ax.set_title(species, color="#f2f4f7", fontsize=15, fontstyle="italic", pad=12)
     ax.tick_params(colors="#9aa1ad", labelsize=8)
     for s in ax.spines.values():
         s.set_color("#39404d")
-    fig.text(0.5, 0.045,
+    fig.text(0.5, -0.02,
              "Fuentes: Regiones botánicas digitalizadas de M. V. Castro · "
              "Áreas Silvestres Protegidas (SINAC) · Altitud (SRTM, INEC) · "
              "Presencias GBIF 10.15468/dl.8yhee8",
              ha="center", color="#6f7782", fontsize=7.5)
 
     tag = ("-".join(codes) if codes else "nopark") + ("__reg" if highlight_regions else "")
+    shown.pop("_other_named", None)
     out_path = out_path or (MAPS / f"{species.replace(' ', '_')}__{tag}.png")
     fig.savefig(out_path, facecolor=BG, bbox_inches="tight")
     plt.close(fig)
     return out_path, shown
+
+
+def species_zone(species: str, ficha: dict | None = None) -> dict:
+    """The species' optimal zone: botanical regions and elevation band.
+
+    Where the Manual is silent the snapshot fills the gap -- 184 species have no stated
+    region and 34 no elevation -- which is the same rule the evidence pack follows:
+    occurrence data fills gaps, it never competes with a stated fact. The source of
+    each half is returned, because a zone derived from records is a weaker claim than
+    one the Manual states and the caption should be able to say so.
+    """
+    import sqlite3
+    from mpcr_rag import config as _cfg
+    from mpcr_rag.store import pg_store
+
+    if ficha is None:
+        con = sqlite3.connect(_cfg.SQLITE_PATH)
+        row = con.execute("SELECT ficha_json FROM fichas WHERE species=?", (species,)).fetchone()
+        con.close()
+        ficha = json.loads(row[0]) if row else {}
+
+    regions = list(ficha.get("regions") or [])
+    lo, hi = ficha.get("elev_min"), ficha.get("elev_max")
+    src = {"regions": "Manual" if regions else None,
+           "elevation": "Manual" if lo is not None else None}
+
+    if not regions or lo is None:
+        conn = pg_store.connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""SELECT regions, elev_dem_p05, elev_dem_p95
+                               FROM mpcr.species_evidence WHERE species = %s""", (species,))
+                r = cur.fetchone()
+        finally:
+            conn.close()
+        if r:
+            if not regions and r[0]:
+                regions, src["regions"] = list(r[0]), "GBIF"
+            if lo is None and r[1] is not None:
+                lo, hi, src["elevation"] = round(r[1]), round(r[2]), "GBIF"
+    return {"regions": regions, "elev_min": lo, "elev_max": hi, "source": src}
+
+
+def parks_in_zone(regions: list[str], lo, hi) -> list[dict]:
+    """Protected areas whose own regions and elevation profile meet the zone.
+
+    This is the same overlap the protected-area keys compute, so a map showing these
+    areas is showing the evidence rather than hinting at an answer.
+    """
+    if not regions or lo is None:
+        return []
+    from mpcr_rag.store import pg_store
+    conn = pg_store.connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""SELECT code, label, elev_p05, elev_p95, regions
+                           FROM mpcr.places
+                           WHERE category IN ('PN','RB') AND elev_p05 IS NOT NULL
+                             AND name !~* 'marin|isla'
+                           ORDER BY code""")
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+    want = set(regions)
+    return [{"code": c, "label": lb} for c, lb, p05, p95, regs in rows
+            if (want & set(regs or [])) and p05 <= hi and p95 >= lo]
 
 
 def main() -> None:
