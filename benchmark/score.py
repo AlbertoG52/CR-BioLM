@@ -54,8 +54,13 @@ def main() -> None:
     answers = _jsonl(DATA / f"answers_{args.part}.jsonl")
     questions = {q["qid"]: q for q in _jsonl(DATA / f"questions_{args.part}.jsonl")}
     out = DATA / f"verdicts_{args.part}.jsonl"
+    # An errored verdict is not a scored one. Counting it as done would retire the
+    # answer permanently: the 20 read-timeouts from the first pass would never be
+    # retried, and the arms they fell in would quietly carry fewer observations than
+    # the others. run.py already treats its own failures this way.
     done = set() if args.fresh else {
-        (r["qid"], r["arm"], r.get("replicate", 0)) for r in _jsonl(out)}
+        (r["qid"], r["arm"], r.get("replicate", 0)) for r in _jsonl(out)
+        if not r.get("error")}
 
     if args.arms:
         want = {a.strip() for a in args.arms.split(",")}
