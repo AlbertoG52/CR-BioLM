@@ -61,11 +61,31 @@ def user_message(question: str, evidence: str | None = None) -> str:
     return f"PREGUNTA: {question}"
 
 
-FAMILIES = {"shared": SYSTEM, "minimal": MINIMAL}
+# The map condition. Same contract as the text pack -- answer from the evidence given,
+# decline when it does not settle the question -- with the evidence arriving as a
+# picture instead of as prose. Keeping the obligations identical is what makes the
+# comparison about the interface rather than about who was told more.
+MAP = (SYSTEM.replace(
+    "Cuando se te proporcione una sección EVIDENCIA, básate únicamente en ella y "
+    "cita la fuente que allí aparece. No agregues datos que la evidencia no contenga.",
+    "Cuando se te proporcione un MAPA, básate únicamente en lo que el mapa muestra: "
+    "la ubicación de los registros, los límites del área consultada y el terreno "
+    "señalado en la leyenda. No agregues datos que el mapa no contenga."))
+
+FAMILIES = {"shared": SYSTEM, "minimal": MINIMAL, "map": MAP}
 
 
 def build(question: str, evidence: str | None = None,
-          family: str = "shared") -> list[dict]:
+          family: str = "shared", image_b64: str | None = None) -> list[dict]:
+    if image_b64:
+        # OpenAI-compatible multimodal parts. The question follows the image so the
+        # model reads the picture as the evidence, mirroring the text arms where the
+        # EVIDENCIA section precedes the question.
+        return [{"role": "system", "content": FAMILIES[family]},
+                {"role": "user", "content": [
+                    {"type": "image_url",
+                     "image_url": {"url": f"data:image/png;base64,{image_b64}"}},
+                    {"type": "text", "text": f"PREGUNTA: {question}"}]}]
     return [{"role": "system", "content": FAMILIES[family]},
             {"role": "user", "content": user_message(question, evidence)}]
 
@@ -80,6 +100,11 @@ def template_hash(family: str = "shared") -> str:
     """
     sys = FAMILIES[family]
     shape = sys + "||" + user_message("<Q>", "<E>") + "||" + user_message("<Q>")
+    if family == "map":
+        # Only the map family carries the image shape. Folding it into every family
+        # would change the hash of prompts whose text never moved, and rows already
+        # recorded under the old value would look like a different template.
+        shape += "||IMG:PREGUNTA: <Q>"
     return hashlib.sha256(shape.encode("utf-8")).hexdigest()[:16]
 
 

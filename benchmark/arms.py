@@ -66,11 +66,20 @@ ARMS = {a.name: a for a in [
     Arm("D",  PAID, "full", note="grounded, the system under test"),
     Arm("E",  PAID, "flora", note="ablation: flora text only"),
     Arm("F",  OPEN, "full", note="grounded, open weights"),
+    Arm("DM", PAID, "map", prompt="map",
+        note="grounded by MAP ONLY: same model as D, evidence as a picture"),
+    Arm("FM", OPEN, "map", prompt="map",
+        note="grounded by MAP ONLY, open weights: same model as F"),
     Arm("G",  None, "full", note="template, no model: the floor"),
 ]}
 
 # Arms runnable today. B waits on the search mechanism being confirmed.
-READY = [n for n in ("G", "A1", "A1F", "C", "CF", "D", "E", "F")]
+READY = [n for n in ("G", "A1", "A1F", "C", "CF", "D", "E", "F", "DM", "FM")]
+
+# The map condition only applies where a map can carry the evidence: the asked-about
+# area has to be drawable and the answer has to turn on geometry. Elsewhere a picture
+# of a distribution says nothing a key tests, and running it would measure nothing.
+MAP_QTYPES = ("park_confirmed", "park_possible", "park_unlikely", "vertiente")
 
 
 # ---------------------------------------------------------------- arm G, the template

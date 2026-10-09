@@ -21,6 +21,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+import base64
 import collections
 import datetime as dt
 import io
@@ -33,6 +34,7 @@ from mpcr_rag.store import pg_store
 from . import arms as A
 from . import client, prompts
 from .evidence_pack import build as build_pack
+from .qmap import render as render_qmap
 
 DATA = Path(__file__).resolve().parent / "data"
 
@@ -152,8 +154,20 @@ def main() -> None:
         with conn.cursor() as cur:
             for i, (q, arm_name) in enumerate(todo, 1):
                 arm = A.ARMS[arm_name]
+                if arm.evidence == "map" and q["qtype"] not in A.MAP_QTYPES:
+                    continue        # a picture carries nothing this key tests
                 pack = None
-                if arm.evidence:
+                img_b64 = None
+                map_shown = None
+                if arm.evidence == "map":
+                    pk = build_pack(cur, q["species"], q["qtype"], level="full",
+                                    place_code=q["key"].get("place_code"))
+                    mp, map_shown = render_qmap(
+                        q["species"], q["key"].get("place_code"),
+                        elev_min=pk.facts.get("elev_min"),
+                        elev_max=pk.facts.get("elev_max"))
+                    img_b64 = base64.b64encode(Path(mp).read_bytes()).decode()
+                elif arm.evidence:
                     pack = build_pack(cur, q["species"], q["qtype"], level=arm.evidence,
                                       place_code=q["key"].get("place_code"))
 
@@ -162,6 +176,8 @@ def main() -> None:
                         ev = pack.text() if (pack and arm.is_llm) else None
                         print(f"=== {q['qid']} / arm {arm_name} "
                               f"({arm.model or 'template'}, evidence={arm.evidence}) ===")
+                        if img_b64:
+                            print(f"[image] {len(img_b64)//1024} KB base64 | {map_shown}")
                         if arm.is_llm:
                             for m in prompts.build(q["question"], ev, family=arm.prompt):
                                 print(f"[{m['role']}]\n{m['content']}\n")
@@ -175,6 +191,7 @@ def main() -> None:
                         "prompt_family": arm.prompt,
                         "evidence_pack_hash": pack.hash if pack else None,
                         "evidence_providers": pack.providers if pack else [],
+                        "map_shown": map_shown,
                         "evidence_level": arm.evidence,
                         "started_at": dt.datetime.now().isoformat(timespec="seconds")}
                 try:
@@ -182,7 +199,8 @@ def main() -> None:
                         res = client.call(arm.model,
                                           prompts.build(q["question"],
                                                         pack.text() if pack else None,
-                                                        family=arm.prompt),
+                                                        family=arm.prompt,
+                                                        image_b64=img_b64),
                                           pin=arm.pin)
                         spent += float(res.get("cost_usd") or 0.0)
                     else:
