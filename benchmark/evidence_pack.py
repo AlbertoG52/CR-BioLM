@@ -42,6 +42,7 @@ from mpcr_rag.ingest.field_extractor import _match_habits
 from mpcr_rag.schema import Ficha
 
 from .questions import _RANGE_BEYOND_CR, _USE_CUE
+from .regions import effective as _effective_regions
 from mpcr_rag.store import pg_store
 
 MONTHS_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
@@ -198,7 +199,7 @@ def _park_block(f: Ficha, place: dict, n70: int, n_all: int) -> str:
     to answer no, when the key says "posible" on region and elevation overlap. So the
     computed overlaps go in, with the collection-effort caveat."""
     eff = _eff(f)
-    sp_regions = set(f.regions or [])
+    sp_regions = set(_effective_regions(f.species, f.regions)["union"])
     pk_regions = set(place["regions"] or [])
     region_overlap = bool(sp_regions & pk_regions)
     elev_overlap = eff is not None and place["lo"] <= eff[1] and place["hi"] >= eff[0]
@@ -210,7 +211,9 @@ def _park_block(f: Ficha, place: dict, n70: int, n_all: int) -> str:
         f"regiones botánicas del área: {', '.join(place['regions'] or []) or 'sin datos'}",
         f"registros de la especie dentro del área: {n_all} en total, {n70} desde 1970",
         f"altitud de la especie (Manual): {_elevation_text(f) or 'sin datos'}",
-        f"regiones botánicas de la especie (Manual): {', '.join(f.regions or []) or 'sin datos'}",
+        f"regiones botánicas de la especie: {', '.join(sorted(sp_regions)) or 'sin datos'}"
+        + (f" (el Manual indica {', '.join(f.regions)}; el resto proviene de registros)"
+           if set(sp_regions) - set(f.regions or []) else ""),
         f"traslape de regiones: {'sí' if region_overlap else 'no'}"
         + (f" ({', '.join(shared)})" if shared else ""),
         f"traslape altitudinal: {'sí' if elev_overlap else 'no'}",
@@ -326,7 +329,10 @@ def build(cur, species: str, qtype: str, *, level: str = "full",
         "species": f.species, "cita": _cite(f), "family": f.family,
         "elev_min": f.elev_min, "elev_max": f.elev_max,
         "elev_effective": list(eff_rng) if eff_rng else None,
-        "vertientes": list(f.vertientes or []), "regions": list(f.regions or []),
+        "vertientes": list(f.vertientes or []),
+        "regions": _effective_regions(f.species, f.regions)["union"],
+        "regions_stated": list(f.regions or []),
+        "regions_inferred": _effective_regions(f.species, f.regions)["inferred"],
         "forest_types": list(f.forest_types or []),
         "flowering_months": list(f.flowering_months or []),
         "growth_form": _growth_form_text(f), "endemic_cr": bool(f.endemic_cr),
@@ -353,7 +359,11 @@ def build(cur, species: str, qtype: str, *, level: str = "full",
         elif name == "vertientes":
             pack.add("vertientes (Manual)", ", ".join(f.vertientes or []) or None)
         elif name == "regiones":
-            pack.add("regiones botánicas (Manual)", ", ".join(f.regions or []) or None)
+            _r = _effective_regions(f.species, f.regions)
+            body = ", ".join(_r["stated"]) or "ninguna indicada"
+            if _r["inferred"]:
+                body += (chr(10) + "además, con registros en: " + ", ".join(_r["inferred"]))
+            pack.add("regiones botánicas (Manual; y regiones con registros GBIF)", body)
         elif name == "floración":
             pack.add("meses de floración (Manual)",
                      ", ".join(MONTHS_ES[m - 1] for m in f.flowering_months) or None
@@ -399,7 +409,8 @@ def build(cur, species: str, qtype: str, *, level: str = "full",
                     n70 = place_overrides["n_since_1970"]
                     n_all = place_overrides.get("n_records", n70)
                 pack.add("área protegida consultada", _park_block(f, place, n70, n_all))
-                sp_r, pk_r = set(f.regions or []), set(place["regions"] or [])
+                sp_r = set(_effective_regions(f.species, f.regions)["union"])
+                pk_r = set(place["regions"] or [])
                 pack.facts["place"] = {
                     "label": place["label"], "code": place["code"],
                     "elev_p05": round(place["lo"]), "elev_p95": round(place["hi"]),

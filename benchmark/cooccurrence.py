@@ -41,6 +41,8 @@ from pathlib import Path
 
 from mpcr_rag import config
 
+from .regions import effective as _eff_regions
+
 N_REQUESTED = 3          # "menciona tres" -- enough to score, few enough to be natural
 
 QUESTION = ("Si encuentro {sp} en el campo, ¿qué otras plantas podría ver creciendo en "
@@ -76,7 +78,8 @@ def _catalogue() -> tuple[dict, dict]:
                 syn[_norm(name)] = f["species"]
         if f.get("elev_min") is None or not f.get("regions"):
             continue
-        out[_norm(f["species"])] = (set(f["regions"]), f["elev_min"], f["elev_max"],
+        out[_norm(f["species"])] = (set(_eff_regions(f["species"], f["regions"])["union"]),
+                                    f["elev_min"], f["elev_max"],
                                     f.get("family"), f["species"])
     con.close()
     return out, syn

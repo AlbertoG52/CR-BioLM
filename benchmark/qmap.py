@@ -119,7 +119,11 @@ def render(species: str, place_code: str | list[str] | None = None, *,
         highlight_regions = zone['regions']
     if elev_min is None:
         elev_min, elev_max = zone['elev_min'], zone['elev_max']
-    zone_parks = parks_in_zone(zone['regions'], zone['elev_min'], zone['elev_max'])
+    inferred = inferred_regions(species, zone['regions'])
+    # Park selection follows the UNION now that the keys do, so the picture
+    # and the answer it is scored against cannot disagree.
+    zone_parks = parks_in_zone(sorted(set(zone['regions']) | set(inferred)),
+                               zone['elev_min'], zone['elev_max'])
     regions = load_regiones_botanicas().to_crs(4326)
     pts = get_points(species)
     codes = ([place_code] if isinstance(place_code, str)
@@ -127,7 +131,7 @@ def render(species: str, place_code: str | list[str] | None = None, *,
     shown = {"species": species, "place_code": codes,
              "n_points": 0 if pts is None or pts.empty else len(pts),
              "park_drawn": False, "park_label": None, "band_drawn": False,
-             "other_areas": [], "zone_source": None}
+             "other_areas": [], "zone_source": None, "regions_inferred": []}
 
     fig, ax = plt.subplots(figsize=(9.5, 10), dpi=130)
     fig.patch.set_facecolor(BG)
@@ -162,6 +166,16 @@ def render(species: str, place_code: str | list[str] | None = None, *,
             # to read habitat where there is none. Region INTERSECTED with band is the
             # potential habitat, which is what the validated expert map shows.
             band_clip = sel
+            # Regions the records argue for but the Manual does not state. Same green,
+            # hatched instead of filled: the palette budget on this surface is three
+            # identities and all three are spent, and texture separates without a
+            # fourth hue that would fail the colourblind floors.
+            if inferred:
+                inf_sel = regions[regions["Nombre"].isin(inferred)]
+                if not inf_sel.empty:
+                    inf_sel.plot(ax=ax, facecolor="none", edgecolor=REGIONS,
+                                 linewidth=1.0, hatch="///", alpha=0.75, zorder=2)
+                    shown["regions_inferred"] = sorted(inferred)
     shown["zone_source"] = zone["source"]
     shown["regions_drawn"] = drawn_regions
     shown["regions_missing"] = missing_regions
@@ -254,6 +268,10 @@ def render(species: str, place_code: str | list[str] | None = None, *,
     if drawn_regions:
         handles.append(Patch(facecolor=REGIONS, edgecolor=REGIONS, alpha=0.6,
                              label="Regiones botánicas donde se reporta la especie"))
+    if shown["regions_inferred"]:
+        handles.append(Patch(facecolor="none", edgecolor=REGIONS, hatch="///",
+                             label=f"Regiones inferidas por registros GBIF "
+                                   f"(n={len(shown['regions_inferred'])})"))
     for letter, name in shown.get("_other_named", []):
         handles.append(Line2D([], [], color=OTHER_AREA, linestyle="--", linewidth=1.2,
                               label=f"{letter} · {name}"))
@@ -331,6 +349,33 @@ def species_zone(species: str, ficha: dict | None = None) -> dict:
             if lo is None and r[1] is not None:
                 lo, hi, src["elevation"] = round(r[1]), round(r[2]), "GBIF"
     return {"regions": regions, "elev_min": lo, "elev_max": hi, "source": src}
+
+
+def inferred_regions(species: str, stated: list[str]) -> list[str]:
+    """Regions holding at least five occurrence records that the Manual does not list.
+
+    The same rule the validated renderer applies (_GBIF_CLUSTER_MIN = 5, "minimum GBIF
+    points in a region to flip it"), reused rather than reimplemented so the stimulus
+    and the expert map cannot drift apart. For Anthurium ravenii it recovers the seven
+    regions that map labels "Region inferida por GBIF": the Manual names four Caribbean
+    lowland regions, while 103 records sit in Osa-Golfito alone.
+
+    These are drawn as information, but they do NOT widen the zone that selects parks.
+    The protected-area keys compute overlap against the Manual's regions, so a map whose
+    park selection followed the inferred set would disagree with the key it is scored
+    against, and the map arm would be marked wrong for reading its own evidence.
+    """
+    from mpcr_rag.store import pg_store
+    conn = pg_store.connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""SELECT region, count(*) FROM mpcr.occurrences
+                           WHERE species = %s AND region IS NOT NULL
+                           GROUP BY region HAVING count(*) >= 5""", (species,))
+            hits = {r[0] for r in cur.fetchall()}
+    finally:
+        conn.close()
+    return sorted(hits - set(stated or []))
 
 
 def parks_in_zone(regions: list[str], lo, hi) -> list[dict]:

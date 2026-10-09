@@ -28,6 +28,7 @@ from mpcr_rag.schema import Ficha
 from mpcr_rag.store import pg_store
 
 from .cooccurrence import QUESTION as CO_QUESTION, key_for as co_key_for
+from .regions import effective as _effective_regions
 
 # Every key states what it is: the answer the scientific record supports. The Manual and
 # the snapshot are incomplete for some species (a cosmopolitan weed collected once in
@@ -118,7 +119,12 @@ def _park_keys(cur, f: Ficha, taxon_key, rng) -> list[dict]:
         recorded = {c: (n70, n) for c, n70, n in cur.fetchall()}
 
     eff = _eff(f)
-    regions = set(f.regions)
+    # The species' range is the Manual's regions plus any region holding at least five
+    # cleaned records (benchmark/regions.py). The Manual's stated range is incomplete
+    # for 50 of the 117 sampled species, and treating a region with 103 specimens as
+    # outside the range would key "improbable" against the evidence.
+    _reg = _effective_regions(f.species, f.regions)
+    regions = set(_reg["union"])
     confirmed, possible, unlikely = [], [], []
     for p in parks:
         n70, n_all = recorded.get(p["code"], (0, 0))
@@ -142,7 +148,9 @@ def _park_keys(cur, f: Ficha, taxon_key, rng) -> list[dict]:
             "question": f"Si visito el {_accented(p['label'])}, ¿puedo encontrarme con {f.species}?",
             "key": {"answer": value, "place_code": p["code"], "records_in_place": n,
                     "place_elevation_p05_p95": [round(p["lo"]), round(p["hi"])],
-                    "place_regions": p["regions"], "species_regions": f.regions,
+                    "place_regions": p["regions"], "species_regions": _reg["union"],
+                    "species_regions_stated": _reg["stated"],
+                    "species_regions_inferred": _reg["inferred"],
                     "species_elevation_effective": list(eff) if eff else None},
             "key_level": "inferred_data" if kind != "confirmed" else "stated_by_records",
             "key_source": ["GBIF snapshot 10.15468/dl.8yhee8", "MPCR regions + elevation",
@@ -151,11 +159,27 @@ def _park_keys(cur, f: Ficha, taxon_key, rng) -> list[dict]:
     return out
 
 
+def _stream(species: str, qtype: str) -> random.Random:
+    """An independent random stream per (species, question type).
+
+    One shared stream made the benchmark fragile in a way that only showed up when a
+    rule changed: `_park_keys` draws from it, so widening the species' regions altered
+    how many draws it consumed, which shifted every later draw and silently rewrote 60
+    cultivation questions -- Mimosa asperata went from being asked about Volcan Irazu
+    at 2,800 m to Puntarenas at 10 m. The keys were right both times; they were answers
+    to different questions.
+
+    Seeding per type means a change to one rule can never perturb another, so a diff
+    after an edit shows only what the edit was meant to touch.
+    """
+    return random.Random(f"{SEED}-{species}-{qtype}")
+
+
 def for_species(cur, item: dict, rng) -> list[dict]:
     f = _ficha(cur, item["species"])
     sp = f.species
     cite = f"Manual de Plantas de Costa Rica, Tomo {f.volume}, p. {f.pages}"
-    qs = _park_keys(cur, f, item.get("taxon_key"), rng)
+    qs = _park_keys(cur, f, item.get("taxon_key"), _stream(sp, "park"))
 
     if f.elev_min is not None:
         qs.append({"qtype": "elevation",
@@ -202,7 +226,7 @@ def for_species(cur, item: dict, rng) -> list[dict]:
 
     eff = _eff(f)
     if eff is not None:
-        place, elev, slope = rng.choice(SETTINGS)
+        place, elev, slope = _stream(sp, "cultivation").choice(SETTINGS)
         in_core = f.elev_min <= elev <= f.elev_max
         in_eff = eff[0] <= elev <= eff[1]
         slope_ok = not f.vertientes or slope in f.vertientes
