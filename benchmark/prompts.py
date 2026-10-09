@@ -38,6 +38,21 @@ SYSTEM = (
 )
 
 
+# The free closed-book baseline. Rules 1 and 3 of SYSTEM read very differently with no
+# evidence section in front of them: the questions ask for elevations, months, places
+# and uses, so "say you do not know rather than guess" plus "do not invent places,
+# elevations, months or uses" amounts to telling a closed-book model not to answer. In
+# the pilot that produced 42 declines out of 48 for the open-weights arm and pulled 20
+# of 48 Mistral answers toward caution, which inflated the grounded-versus-closed-book
+# gap with prompt effects.
+#
+# MINIMAL keeps role, language and length -- so the only thing removed is the caution --
+# and answers the question the paper actually asks: what does a person get when they
+# simply ask. A model told not to invent cannot show us the invention we are studying.
+MINIMAL = ("Eres un botánico especialista en la flora de Costa Rica. "
+           "Responde la pregunta en español, en un párrafo breve.")
+
+
 def user_message(question: str, evidence: str | None = None) -> str:
     """The user turn. With evidence it carries an EVIDENCIA section; without it, the
     bare question. No other difference between arms."""
@@ -46,15 +61,25 @@ def user_message(question: str, evidence: str | None = None) -> str:
     return f"PREGUNTA: {question}"
 
 
-def build(question: str, evidence: str | None = None) -> list[dict]:
-    return [{"role": "system", "content": SYSTEM},
+FAMILIES = {"shared": SYSTEM, "minimal": MINIMAL}
+
+
+def build(question: str, evidence: str | None = None,
+          family: str = "shared") -> list[dict]:
+    return [{"role": "system", "content": FAMILIES[family]},
             {"role": "user", "content": user_message(question, evidence)}]
 
 
-def template_hash() -> str:
-    """Identifies the template, NOT the filled-in prompt. Every model arm in a run must
-    report this same value; the evidence itself is tracked by the pack hash."""
-    shape = SYSTEM + "||" + user_message("<Q>", "<E>") + "||" + user_message("<Q>")
+def template_hash(family: str = "shared") -> str:
+    """Identifies the template, NOT the filled-in prompt. Arms in the same prompt family
+    must report the same value; the evidence itself is tracked by the pack hash.
+
+    Two families, declared rather than accidental: the grounded arms and the careful
+    closed-book arms share one prompt, and the free closed-book baselines share another.
+    A run records which family each arm used, so the prompt is never a silent variable.
+    """
+    sys = FAMILIES[family]
+    shape = sys + "||" + user_message("<Q>", "<E>") + "||" + user_message("<Q>")
     return hashlib.sha256(shape.encode("utf-8")).hexdigest()[:16]
 
 

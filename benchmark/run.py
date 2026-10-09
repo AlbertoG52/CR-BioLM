@@ -58,16 +58,25 @@ def pick_species(rows: list[dict], n: int) -> list[str]:
     return out
 
 
-def _assert_prompt_parity(selected: list[str]) -> str:
-    """Every model arm shares one template. Checked, not trusted."""
-    h = prompts.template_hash()
+def _assert_prompt_parity(selected: list[str]) -> dict[str, str]:
+    """Arms in the same prompt FAMILY share one template. Checked, not trusted.
+
+    Two families are declared (prompts.FAMILIES): the grounded and careful closed-book
+    arms, and the free closed-book baselines. Within a family the hash must be identical
+    or the ablation measures the prompt; across families it must differ, or the free
+    baseline is not actually free. Both directions are asserted.
+    """
     llm = [n for n in selected if A.ARMS[n].is_llm]
-    if not llm:
-        return h
-    hashes = {n: prompts.template_hash() for n in llm}
-    if len(set(hashes.values())) != 1:
-        raise SystemExit(f"prompt parity violated: {hashes}")
-    return h
+    per_arm = {n: prompts.template_hash(A.ARMS[n].prompt) for n in llm}
+    by_family: dict[str, set] = {}
+    for n in llm:
+        by_family.setdefault(A.ARMS[n].prompt, set()).add(per_arm[n])
+    for fam, hashes in by_family.items():
+        if len(hashes) != 1:
+            raise SystemExit(f"prompt parity violated inside family {fam!r}: {hashes}")
+    if len({next(iter(h)) for h in by_family.values()}) != len(by_family):
+        raise SystemExit(f"prompt families collide: {by_family}")
+    return per_arm
 
 
 def _existing(path: Path) -> set[tuple]:
@@ -120,7 +129,7 @@ def main() -> None:
         rows = [r for r in rows if r["qtype"] in want]
     rows.sort(key=lambda r: (r["species"], r["qtype"]))
 
-    thash = _assert_prompt_parity(selected)
+    thashes = _assert_prompt_parity(selected)
     out = Path(args.out) if args.out else DATA / f"answers_{args.part}.jsonl"
     done = set() if args.fresh else _existing(out)
 
@@ -129,7 +138,9 @@ def main() -> None:
 
     print(f"part={args.part}  questions={len(rows)}  "
           f"species={len({r['species'] for r in rows})}  arms={selected}")
-    print(f"template_hash={thash}  already done={len(done)}  to do={len(todo)}")
+    fams = {A.ARMS[n].prompt for n in selected if A.ARMS[n].is_llm}
+    print(f"prompt families={sorted(fams)}  hashes={sorted(set(thashes.values()))}")
+    print(f"already done={len(done)}  to do={len(todo)}")
     if args.dry_run:
         print("DRY RUN -- nothing will be called or written\n")
 
@@ -152,7 +163,7 @@ def main() -> None:
                         print(f"=== {q['qid']} / arm {arm_name} "
                               f"({arm.model or 'template'}, evidence={arm.evidence}) ===")
                         if arm.is_llm:
-                            for m in prompts.build(q["question"], ev):
+                            for m in prompts.build(q["question"], ev, family=arm.prompt):
                                 print(f"[{m['role']}]\n{m['content']}\n")
                         else:
                             print(A.template_answer(q["question"], q["qtype"], pack.facts), "\n")
@@ -160,7 +171,8 @@ def main() -> None:
 
                 base = {"qid": q["qid"], "arm": arm_name, "replicate": args.replicate,
                         "species": q["species"], "qtype": q["qtype"],
-                        "prompt_template_hash": thash,
+                        "prompt_template_hash": thashes.get(arm_name),
+                        "prompt_family": arm.prompt,
                         "evidence_pack_hash": pack.hash if pack else None,
                         "evidence_providers": pack.providers if pack else [],
                         "evidence_level": arm.evidence,
@@ -168,7 +180,9 @@ def main() -> None:
                 try:
                     if arm.is_llm:
                         res = client.call(arm.model,
-                                          prompts.build(q["question"], pack.text() if pack else None),
+                                          prompts.build(q["question"],
+                                                        pack.text() if pack else None,
+                                                        family=arm.prompt),
                                           pin=arm.pin)
                         spent += float(res.get("cost_usd") or 0.0)
                     else:

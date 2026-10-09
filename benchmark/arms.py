@@ -43,6 +43,7 @@ class Arm:
     evidence: str | None       # None | "flora" | "full"
     web: bool = False
     note: str = ""
+    prompt: str = "shared"     # prompt family, see prompts.FAMILIES
 
     @property
     def pin(self) -> tuple[str, ...]:
@@ -54,10 +55,14 @@ class Arm:
 
 
 ARMS = {a.name: a for a in [
-    Arm("A1", PAID, None, note="closed book, paid generator"),
+    Arm("A1", PAID, None, note="closed book, careful prompt"),
+    Arm("A1F", PAID, None, prompt="minimal",
+        note="closed book, FREE prompt: what a person actually gets when they just ask"),
     Arm("B",  PAID, None, web=True,
         note="web search; plumbing unverified, excluded from the first run"),
-    Arm("C",  OPEN, None, note="closed book, open weights"),
+    Arm("C",  OPEN, None, note="closed book, open weights, careful prompt"),
+    Arm("CF", OPEN, None, prompt="minimal",
+        note="closed book, open weights, FREE prompt"),
     Arm("D",  PAID, "full", note="grounded, the system under test"),
     Arm("E",  PAID, "flora", note="ablation: flora text only"),
     Arm("F",  OPEN, "full", note="grounded, open weights"),
@@ -65,7 +70,7 @@ ARMS = {a.name: a for a in [
 ]}
 
 # Arms runnable today. B waits on the search mechanism being confirmed.
-READY = [n for n in ("G", "A1", "C", "D", "E", "F")]
+READY = [n for n in ("G", "A1", "A1F", "C", "CF", "D", "E", "F")]
 
 
 # ---------------------------------------------------------------- arm G, the template
