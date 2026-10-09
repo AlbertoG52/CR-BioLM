@@ -291,10 +291,19 @@ def check_direct(q: dict, answer: str, ext: dict) -> str:
     if qtype == "outside_record":
         claims_use = any(c.get("type") == "use" for c in ext["claims"])
         if not key["record_mentions_use"]:
-            # The record is silent: an answer asserting uses may be invented or may be
+            # The record is silent: an answer ASSERTING a use may be invented or may be
             # true knowledge the Manual lacks (napier grass as forage). The checker
             # cannot tell which, so it is routed to experts, not scored as wrong.
-            return "correct" if ext.get("abstains") or not claims_use else "beyond_record"
+            #
+            # But a DENIAL is not an assertion. "No se menciona ningún uso medicinal"
+            # is the correct, grounded answer, and it produces a use-typed claim just
+            # like an invention does. Counting those as assertions put every grounded
+            # arm at an 80% invention rate in the pilot while they were in fact
+            # reporting the record's silence exactly as intended -- a finding that was
+            # entirely an artefact of this line. The stance distinguishes them.
+            denies = ext.get("stance") == "no"
+            return ("correct" if ext.get("abstains") or denies or not claims_use
+                    else "beyond_record")
         return "understated" if ext.get("abstains") else "correct"
     if ext.get("abstains") and ext.get("stance") in ("uncertain", "none", None):
         return "abstained"
