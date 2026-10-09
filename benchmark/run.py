@@ -23,6 +23,8 @@ from __future__ import annotations
 import argparse
 import base64
 import collections
+import concurrent.futures as cf
+import threading
 import datetime as dt
 import io
 import json
@@ -104,6 +106,10 @@ def main() -> None:
                     help=f"comma separated; ready: {','.join(A.READY)}")
     ap.add_argument("--species", type=int, default=0,
                     help="restrict to N species spread across strata (0 = all)")
+    ap.add_argument("--species-file", default="",
+                    help="a frozen JSON list of species names; preferred over --species "
+                         "for a run that goes in a paper, because the selection is then "
+                         "a committed artefact rather than a function's behaviour")
     ap.add_argument("--qtypes", default="", help="comma separated filter")
     ap.add_argument("--replicate", type=int, default=0)
     ap.add_argument("--max-cost", type=float, default=1.00,
@@ -111,6 +117,9 @@ def main() -> None:
     ap.add_argument("--dry-run", action="store_true",
                     help="print prompts, call nothing, write nothing")
     ap.add_argument("--fresh", action="store_true", help="ignore existing rows")
+    ap.add_argument("--workers", type=int, default=6,
+                    help="parallel API calls. Generation is network-bound and idle "
+                         "between calls, so this is the one stage worth fanning out")
     ap.add_argument("--out", default="")
     args = ap.parse_args()
 
@@ -123,7 +132,14 @@ def main() -> None:
         raise SystemExit(f"arms not ready: {not_ready} -- {[A.ARMS[a].note for a in not_ready]}")
 
     rows = _load_questions(args.part)
-    if args.species:
+    if args.species_file:
+        keep = set(json.loads(Path(args.species_file).read_text(encoding="utf-8")))
+        missing = keep - {r["species"] for r in rows}
+        if missing:
+            raise SystemExit(f"{len(missing)} species not in part={args.part}: "
+                             f"{sorted(missing)[:3]}")
+        rows = [r for r in rows if r["species"] in keep]
+    elif args.species:
         keep = set(pick_species(rows, args.species))
         rows = [r for r in rows if r["species"] in keep]
     if args.qtypes:
@@ -146,10 +162,14 @@ def main() -> None:
     if args.dry_run:
         print("DRY RUN -- nothing will be called or written\n")
 
+    # Two phases, because they have different constraints. Preparation touches Postgres
+    # and matplotlib, neither of which is thread-safe, so it stays serial; it is also
+    # fast. The API calls are the slow part and are pure network, so they fan out.
+    #
+    # Scoring is NOT parallelised: it runs on one local GPU, and workers there would
+    # contend for the same constrained resource rather than overlap.
     conn = pg_store.connect()
-    spent = 0.0
-    wrote = failed = 0
-    fh = None if args.dry_run else io.open(out, "a", encoding="utf-8")
+    jobs: list[dict] = []
     try:
         with conn.cursor() as cur:
             for i, (q, arm_name) in enumerate(todo, 1):
@@ -191,53 +211,81 @@ def main() -> None:
                             print(A.template_answer(q["question"], q["qtype"], pack.facts), "\n")
                     continue
 
-                base = {"qid": q["qid"], "arm": arm_name, "replicate": args.replicate,
-                        "species": q["species"], "qtype": q["qtype"],
-                        "prompt_template_hash": thashes.get(arm_name),
-                        "prompt_family": arm.prompt,
-                        "evidence_pack_hash": pack.hash if pack else None,
-                        "evidence_providers": pack.providers if pack else [],
-                        "map_shown": map_shown,
-                        "evidence_level": arm.evidence,
-                        "started_at": dt.datetime.now().isoformat(timespec="seconds")}
-                try:
-                    if arm.is_llm:
-                        res = client.call(arm.model,
-                                          prompts.build(q["question"],
-                                                        pack.text() if pack else None,
-                                                        family=arm.prompt,
-                                                        image_b64=img_b64),
-                                          pin=arm.pin)
-                        spent += float(res.get("cost_usd") or 0.0)
-                    else:
-                        res = {"answer_text": A.template_answer(q["question"], q["qtype"],
-                                                               pack.facts),
-                               "model_id": None, "model_version": None,
-                               "provider_pinned": None, "served_by": None, "pin_held": None,
-                               "prompt_tokens": None, "completion_tokens": None,
-                               "reasoning_tokens": None, "finish_reason": None,
-                               "cost_usd": 0.0, "latency_ms": 0, "attempts": 1}
-                    row = {**base, **res, "error": None}
-                    wrote += 1
-                except Exception as e:
-                    row = {**base, "answer_text": None, "error": f"{type(e).__name__}: {e}"}
-                    failed += 1
-
-                fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-                fh.flush()
-                if i % 20 == 0 or i == len(todo):
-                    print(f"  {i}/{len(todo)}  ok={wrote} fail={failed} spent=${spent:.4f}")
-                if spent > args.max_cost:
-                    print(f"\nCOST CEILING hit (${spent:.4f} > ${args.max_cost:.2f}); stopping. "
-                          f"Re-run to resume.", file=sys.stderr)
-                    break
+                jobs.append({
+                    "arm": arm,
+                    "messages": (prompts.build(q["question"],
+                                               pack.text() if pack else None,
+                                               family=arm.prompt, image_b64=img_b64)
+                                 if arm.is_llm else None),
+                    "template": (None if arm.is_llm else
+                                 A.template_answer(q["question"], q["qtype"], pack.facts)),
+                    "base": {"qid": q["qid"], "arm": arm_name, "replicate": args.replicate,
+                             "species": q["species"], "qtype": q["qtype"],
+                             "prompt_template_hash": thashes.get(arm_name),
+                             "prompt_family": arm.prompt,
+                             "evidence_pack_hash": pack.hash if pack else None,
+                             "evidence_providers": pack.providers if pack else [],
+                             "map_shown": map_shown,
+                             "evidence_level": arm.evidence},
+                })
     finally:
-        if fh:
-            fh.close()
         conn.close()
 
-    if not args.dry_run:
-        print(f"\nwrote {wrote} rows, {failed} errors, ${spent:.4f} -> {out}")
+    if args.dry_run:
+        return
+
+    TEMPLATE_RES = {"model_id": None, "model_version": None, "provider_pinned": None,
+                    "served_by": None, "pin_held": None, "prompt_tokens": None,
+                    "completion_tokens": None, "reasoning_tokens": None,
+                    "finish_reason": None, "cost_usd": 0.0, "latency_ms": 0, "attempts": 1}
+
+    lock = threading.Lock()
+    state = {"spent": 0.0, "wrote": 0, "failed": 0, "done": 0, "halt": False}
+
+    def execute(job: dict) -> dict:
+        base = {**job["base"],
+                "started_at": dt.datetime.now().isoformat(timespec="seconds")}
+        with lock:
+            if state["halt"]:
+                return {}
+        try:
+            if job["arm"].is_llm:
+                res = client.call(job["arm"].model, job["messages"], pin=job["arm"].pin)
+            else:
+                res = {"answer_text": job["template"], **TEMPLATE_RES}
+            return {**base, **res, "error": None}
+        except Exception as e:
+            return {**base, "answer_text": None, "error": f"{type(e).__name__}: {e}"}
+
+    print(f"executing {len(jobs)} calls with {args.workers} workers")
+    fh = io.open(out, "a", encoding="utf-8")
+    try:
+        with cf.ThreadPoolExecutor(max_workers=args.workers) as pool:
+            for row in pool.map(execute, jobs):
+                if not row:
+                    continue
+                with lock:
+                    state["spent"] += float(row.get("cost_usd") or 0.0)
+                    if row.get("error"):
+                        state["failed"] += 1
+                    else:
+                        state["wrote"] += 1
+                    state["done"] += 1
+                    fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    fh.flush()
+                    if state["done"] % 25 == 0 or state["done"] == len(jobs):
+                        print(f"  {state['done']}/{len(jobs)}  ok={state['wrote']} "
+                              f"fail={state['failed']} spent=${state['spent']:.4f}")
+                    if state["spent"] > args.max_cost and not state["halt"]:
+                        state["halt"] = True
+                        print(f"\nCOST CEILING hit (${state['spent']:.4f} > "
+                              f"${args.max_cost:.2f}); stopping. Re-run to resume.",
+                              file=sys.stderr)
+    finally:
+        fh.close()
+
+    print(f"\nwrote {state['wrote']} rows, {state['failed']} errors, "
+          f"${state['spent']:.4f} -> {out}")
 
 
 if __name__ == "__main__":
