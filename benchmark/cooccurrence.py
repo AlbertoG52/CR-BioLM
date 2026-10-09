@@ -130,8 +130,16 @@ def check(subject: str, named: list[str], *, use_gbif: bool = True) -> list[dict
     cr = _in_costa_rica() if use_gbif else set()
     sub = cat.get(_norm(subject)) or cat.get(_norm(syn.get(_norm(subject), "")))
     results = []
+    sub_keys = {_norm(subject)}
+    if sub is not None:
+        sub_keys.add(_norm(sub[4]))
     for name in named:
         key = _norm(name)
+        if key in sub_keys:
+            # Nearly every answer restates the species it was asked about, and a plant
+            # is trivially compatible with itself. Counting it handed every arm a free
+            # correct and inflated precision across the board.
+            continue
         row = cat.get(key) or cat.get(_norm(syn.get(key, "")))
         if row is None:
             tier = "outside_scope" if key in cr else "unrecognised"
