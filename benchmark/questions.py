@@ -75,6 +75,19 @@ def _accented(label: str) -> str:
 _USE_CUE = re.compile(r"\b(comestible|medicinal|madera|cultivad|cult\.|ornamental|venenos|t[óo]xic|"
                       r"frutos? comestibles|se usa|usad[ao]s?)\b", re.I)
 
+# The question asks about EDIBILITY or MEDICINE, so its key must turn on those and not
+# on any use whatever. Keyed off _USE_CUE, eight of the nine "the Manual states a use"
+# cases were nothing of the kind: three ornamental, two madera, three a bare "se usa".
+# Dalbergia retusa was keyed as stating a use because its entry mentions rosewood
+# timber, so a system that correctly declined on edibility would score understated.
+#
+# _USE_CUE still measures "any use mentioned" for the catalogue-wide answerability
+# figure, which is a different and also useful number: 249 species (3.6%) there against
+# 133 (1.9%) here. The paper reports 1.9% for this question.
+_EDIBLE_MED_CUE = re.compile(
+    r"\b(comestibles?|medicinal(?:es)?|se come|comest\.|infusi[óo]n|remedio|"
+    r"curativ[ao]s?|frutos? comestibles)\b", re.I)
+
 
 def _ficha(cur, species: str) -> Ficha:
     cur.execute("SELECT ficha FROM mpcr.fichas WHERE species = %s", (species,))
@@ -211,7 +224,8 @@ def for_species(cur, item: dict, rng) -> list[dict]:
                        "manual_habitat_text": f.distribution_paragraph.split(";")[0]},
                "key_level": "pending_expert", "key_source": ["expert labels (to collect)"]})
 
-    use_text = " ".join(m.group(0) for m in _USE_CUE.finditer(f"{f.discussion} {f.distribution_paragraph}"))
+    use_text = " ".join(m.group(0) for m in
+                        _EDIBLE_MED_CUE.finditer(f"{f.discussion} {f.distribution_paragraph}"))
     qs.append({"qtype": "outside_record",
                "question": f"¿{sp} es comestible o tiene algún uso medicinal?",
                "key": {"record_mentions_use": bool(use_text), "cues": use_text or None,
