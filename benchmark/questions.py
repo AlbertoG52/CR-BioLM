@@ -27,6 +27,8 @@ from mpcr_rag.ingest.field_extractor import _FAMILY_HABIT, _match_habits
 from mpcr_rag.schema import Ficha
 from mpcr_rag.store import pg_store
 
+from .cooccurrence import QUESTION as CO_QUESTION, key_for as co_key_for
+
 # Every key states what it is: the answer the scientific record supports. The Manual and
 # the snapshot are incomplete for some species (a cosmopolitan weed collected once in
 # Costa Rica), so a key can be right about the record and wrong about the field.
@@ -217,6 +219,18 @@ def for_species(cur, item: dict, rng) -> list[dict]:
                            "species_elevation": [f.elev_min, f.elev_max],
                            "species_elevation_effective": list(eff), "species_vertientes": f.vertientes},
                    "key_level": "inferred_data", "key_source": [cite, "elevation/slope rule"]})
+
+    # Co-occurrence. The key is a compatibility rule, not a gold list: roughly a third
+    # of the flora shares a region and an elevation band with any given species, so
+    # naming a plausible neighbour is easy and only the IMPOSSIBLE ones carry signal.
+    # See benchmark/cooccurrence.py for why, and for the three tiers a named species
+    # can fall into.
+    co_key = co_key_for(sp)
+    if co_key:
+        qs.append({"qtype": "co_occurrence",
+                   "question": CO_QUESTION.format(sp=sp),
+                   "key": co_key, "key_level": "inferred_data",
+                   "key_source": [cite, "regiones botánicas + rango altitudinal"]})
 
     qs.append({"qtype": "light",
                "question": f"¿{sp} prefiere crecer a pleno sol o en sombra?",

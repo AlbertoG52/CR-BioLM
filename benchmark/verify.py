@@ -288,6 +288,13 @@ def check_direct(q: dict, answer: str, ext: dict) -> str:
     key, qtype = q["key"], q["qtype"]
     if qtype == "light":
         return "not_scored"
+    if qtype == "co_occurrence":
+        # Scored on precision over what the answer volunteers, never recall: about a
+        # third of the flora could co-occur with any given species, so naming a
+        # neighbour is easy and only an impossible one is informative. Species outside
+        # the ingested volumes are not held against the answer (cooccurrence.py).
+        from .cooccurrence import check as co_check, extract_species, verdict as co_verdict
+        return co_verdict(co_check(q["species"], extract_species(answer)))
     if qtype == "outside_record":
         claims_use = any(c.get("type") == "use" for c in ext["claims"])
         if not key["record_mentions_use"]:

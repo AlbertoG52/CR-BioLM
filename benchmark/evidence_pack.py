@@ -247,6 +247,7 @@ _FLORA_BLOCKS = {
     "endemism":       ("cita", "distribución y hábitat", "endemismo"),
     "light":          ("cita", "distribución y hábitat", "morfología"),
     "outside_record": ("cita", "distribución y hábitat", "notas"),
+    "co_occurrence":  ("cita", "distribución y hábitat", "altitud", "regiones"),
     "park_confirmed": ("cita", "distribución y hábitat", "altitud", "regiones"),
     "park_possible":  ("cita", "distribución y hábitat", "altitud", "regiones"),
     "park_unlikely":  ("cita", "distribución y hábitat", "altitud", "regiones"),
@@ -262,6 +263,7 @@ _FULL_EXTRA = {
     "endemism":       (),
     "light":          (),
     "outside_record": (),
+    "co_occurrence":  ("especies compatibles",),
     "park_confirmed": ("área protegida", "registros de ocurrencia"),
     "park_possible":  ("área protegida", "registros de ocurrencia"),
     "park_unlikely":  ("área protegida", "registros de ocurrencia"),
@@ -367,6 +369,16 @@ def build(cur, species: str, qtype: str, *, level: str = "full",
                      or (f"distribución más allá de Costa Rica: {tail}" if tail else None))
         elif name == "notas":
             pack.add("notas y discusión (Manual)", (f.discussion or "")[:MORPHOLOGY_CHARS] or None)
+        elif name == "especies compatibles":
+            from .cooccurrence import neighbours
+            rows = neighbours(species, limit=12)
+            if rows:
+                pack.add("especies que el Manual reporta en las mismas regiones y rango "
+                         "altitudinal",
+                         chr(10).join(f"- {r['species']} ({r['family']}), "
+                                      f"{r['elevation'][0]}-{r['elevation'][1]} m"
+                                      for r in rows))
+                pack.providers.append("MPCR regions + elevation")
         elif name == "registros de ocurrencia":
             if not _OCC_GATE.get(qtype, lambda _f: False)(f):
                 continue
