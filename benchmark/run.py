@@ -162,10 +162,16 @@ def main() -> None:
                 if arm.evidence == "map":
                     pk = build_pack(cur, q["species"], q["qtype"], level="full",
                                     place_code=q["key"].get("place_code"))
+                    # Region overlap is half of what a protected-area key turns on,
+                    # so the map must carry it -- but NOT for vertiente, where which
+                    # region the species occupies is the answer being tested.
+                    regs = (pk.facts.get("regions")
+                            if q["qtype"].startswith("park_") else None)
                     mp, map_shown = render_qmap(
                         q["species"], q["key"].get("place_code"),
                         elev_min=pk.facts.get("elev_min"),
-                        elev_max=pk.facts.get("elev_max"))
+                        elev_max=pk.facts.get("elev_max"),
+                        highlight_regions=regs)
                     img_b64 = base64.b64encode(Path(mp).read_bytes()).decode()
                 elif arm.evidence:
                     pack = build_pack(cur, q["species"], q["qtype"], level=arm.evidence,

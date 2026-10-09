@@ -69,9 +69,12 @@ BG = "#161a22"
 # two before colour stops working; beyond that they share one colour and the legend
 # letters them, which is the usual cartographic answer and stays readable at any count.
 POINTS = "#d55181"        # magenta, the focal data
-AREA_COLORS = ["#3987e5", "#008300"]   # blue, green: worst pair normal 26.5 / CVD 11.3
-AREA_FALLBACK = "#3987e5"
+AREA_FALLBACK = "#3987e5"              # blue, the asked-about protected area
+AREA_COLORS = ["#3987e5"]
+REGIONS = "#008300"       # green, the botanical regions the Manual reports
 BAND = "#9aa1ad"          # achromatic on purpose (C=0.02): terrain, not a category
+# magenta / blue / green validated all-pairs on this surface: worst normal-vision
+# Delta E 26.5, worst CVD 11.3. That is the whole budget -- three identities.
 
 
 def _elevation_band(regions: gpd.GeoDataFrame, lo: float, hi: float):
@@ -105,6 +108,7 @@ def _elevation_band(regions: gpd.GeoDataFrame, lo: float, hi: float):
 
 def render(species: str, place_code: str | list[str] | None = None, *,
            elev_min: float | None = None, elev_max: float | None = None,
+           highlight_regions: list[str] | None = None,
            out_path: Path | None = None) -> tuple[Path, dict]:
     """Render the stimulus. Returns the path and what the image actually shows, so a
     run can record whether the park and the band made it onto the picture."""
@@ -120,8 +124,30 @@ def render(species: str, place_code: str | list[str] | None = None, *,
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(BG)
 
-    # Context only: no region is named, coloured or distinguished from any other.
     regions.plot(ax=ax, facecolor=LAND, edgecolor=LAND_EDGE, linewidth=0.4, zorder=1)
+
+    # The regions the Manual reports for this species. Half of what a protected-area
+    # key turns on is region overlap, so a map without this layer carries less evidence
+    # than the text pack and the comparison stops being about the interface.
+    #
+    # The layer is drawn but never NAMED: the legend says that these are the reported
+    # regions, not which ones they are. For a question about slope or region the caller
+    # passes nothing, because there the identity of the region IS the answer.
+    drawn_regions, missing_regions = [], []
+    if highlight_regions:
+        have = {str(n): n for n in regions["Nombre"].dropna().unique()}
+        for want in highlight_regions:
+            hit = have.get(want)
+            if hit is None:                     # "Fila Costeña (Norte)" -> "Fila Costeña"
+                base = want.split("(")[0].strip()
+                hit = have.get(base) or next((k for k in have if k.startswith(base)), None)
+            (drawn_regions if hit else missing_regions).append(hit or want)
+        if drawn_regions:
+            sel = regions[regions["Nombre"].isin(drawn_regions)]
+            sel.plot(ax=ax, facecolor=REGIONS, edgecolor=REGIONS, linewidth=1.0,
+                     alpha=0.26, zorder=2)
+    shown["regions_drawn"] = drawn_regions
+    shown["regions_missing"] = missing_regions
 
     band = _elevation_band(regions, elev_min, elev_max)
     if band is not None:
@@ -165,6 +191,9 @@ def render(species: str, place_code: str | list[str] | None = None, *,
     handles = [Line2D([], [], marker="o", color="none", markerfacecolor=POINTS,
                       markeredgecolor="white", markersize=9,
                       label=f"Registros de la especie (n={shown['n_points']})")]
+    if drawn_regions:
+        handles.append(Patch(facecolor=REGIONS, edgecolor=REGIONS, alpha=0.6,
+                             label="Regiones botánicas donde se reporta la especie"))
     for colour, name, letter in drawn_areas:
         handles.append(Patch(facecolor=colour, edgecolor=colour, alpha=0.6,
                              label=(f"{letter} · {name}" if letter else name)))
@@ -185,7 +214,7 @@ def render(species: str, place_code: str | list[str] | None = None, *,
              "Presencias GBIF 10.15468/dl.8yhee8",
              ha="center", color="#6f7782", fontsize=7.5)
 
-    tag = "-".join(codes) if codes else "nopark"
+    tag = ("-".join(codes) if codes else "nopark") + ("__reg" if highlight_regions else "")
     out_path = out_path or (MAPS / f"{species.replace(' ', '_')}__{tag}.png")
     fig.savefig(out_path, facecolor=BG, bbox_inches="tight")
     plt.close(fig)
@@ -199,11 +228,13 @@ def main() -> None:
                     help="one code, or several comma separated")
     ap.add_argument("--elev-min", type=float, default=None)
     ap.add_argument("--elev-max", type=float, default=None)
+    ap.add_argument("--regions", default="", help="comma separated region names to shade")
     ap.add_argument("--out", default="")
     args = ap.parse_args()
     codes = [c.strip() for c in args.place_code.split(",")] if args.place_code else None
+    regs = [r.strip() for r in args.regions.split(",")] if args.regions else None
     p, shown = render(args.species, codes, elev_min=args.elev_min,
-                      elev_max=args.elev_max,
+                      elev_max=args.elev_max, highlight_regions=regs,
                       out_path=Path(args.out) if args.out else None)
     print(f"wrote {p}")
     print(shown)
