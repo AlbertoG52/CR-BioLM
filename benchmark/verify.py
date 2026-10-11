@@ -140,6 +140,14 @@ Reglas:
 - "stance": la postura sobre la pregunta. "yes" = afirma que sí; "no" = afirma que no o que es improbable;
   "possible" = dice que es posible o probable pero no seguro; "uncertain" = no sabe o no puede confirmar;
   "none" = la pregunta no es de sí/no.
+  Atención con las preguntas del tipo "¿puedo encontrar...?" o "¿podría...?": responder "Sí, es posible
+  encontrarla" o "Sí, se puede" es una forma de decir que SÍ. Clasifica por lo que la respuesta afirma
+  sobre la presencia, no por la palabra "posible":
+    - "yes" si afirma que la especie está presente, registrada o confirmada allí (por ejemplo, cita
+      registros dentro del área);
+    - "possible" solo si dice que podría estar pero que no está confirmada (por ejemplo, que no hay
+      registros, o que no se puede asegurar).
+  Si la respuesta solo dice que no tiene información o que no sabe, la postura es "uncertain", nunca "no".
 - "claims": cada afirmación factual SOBRE LA PLANTA por separado (altitud, lugares, vertiente, floración,
   forma de crecimiento, endemismo, usos, luz, morfología). No incluyas opiniones, consejos ni frases de cortesía.
   Para lugares, una afirmación por lugar.
@@ -284,7 +292,17 @@ _STANCE_TABLE = {   # key answer -> {stance: verdict}
 }
 
 
-def check_direct(q: dict, answer: str, ext: dict) -> str:
+_NEGATED = re.compile(
+    r"\bno\b|\bning[úu]n[ao]?s?\b|\bsin\b|\bcarece|\btampoco\b|\bni\b|\bdesconoc", re.I)
+
+
+_EDIBLE_MED_CLAIM = re.compile(
+    r"comestible|se come|aliment|medicin|infusi[óo]n|remedio|curativ|\bcura\b|\btrata(r|miento)?\b|"
+    r"\bt[ée]\b|fiebre|dolor|diarrea|tos\b|antiinflam|cicatriz", re.I)
+
+
+def check_direct(q: dict, answer: str, ext: dict,
+                 record_mentions_any_use: bool = False) -> str:
     key, qtype = q["key"], q["qtype"]
     if qtype == "light":
         return "not_scored"
@@ -308,9 +326,23 @@ def check_direct(q: dict, answer: str, ext: dict) -> str:
             # arm at an 80% invention rate in the pilot while they were in fact
             # reporting the record's silence exactly as intended -- a finding that was
             # entirely an artefact of this line. The stance distinguishes them.
-            denies = ext.get("stance") == "no"
-            return ("correct" if ext.get("abstains") or denies or not claims_use
-                    else "beyond_record")
+            #
+            # The stance alone is too coarse for a mixed answer. "No es comestible,
+            # pero se usa como forraje" has stance "no" and still asserts a use, and
+            # scored on stance it passed as a correct silence. So the test is per claim:
+            # a use claim counts as an assertion unless its own text negates it.
+            #
+            # And not every asserted use is beyond the record. The key is silent on
+            # EDIBLE or MEDICINAL use, but the entry may still state another one, and
+            # the best grounded answers report it: "no se menciona que sea comestible
+            # ni medicinal; únicamente se señala su potencial como ornamental". That is
+            # faithful, not invented. So an asserted use is beyond the record when it
+            # is an edible or medicinal one, or when the entry mentions no use at all.
+            asserted = [c.get("text", "") for c in ext["claims"] if c.get("type") == "use"
+                        and not _NEGATED.search(c.get("text", ""))]
+            beyond = [t for t in asserted
+                      if _EDIBLE_MED_CLAIM.search(t) or not record_mentions_any_use]
+            return "beyond_record" if beyond else "correct"
         return "understated" if ext.get("abstains") else "correct"
     if ext.get("abstains") and ext.get("stance") in ("uncertain", "none", None):
         return "abstained"
@@ -362,7 +394,10 @@ def verify_extracted(q: dict, answer: str, ext: dict, cur) -> dict:
     claims = [{**c, "verdict": check_claim(c, rec)} for c in ext["claims"]]
     counts = {v: sum(1 for c in claims if c["verdict"] == v)
               for v in ("supported", "contradicted", "not_in_record", "unverifiable")}
-    return {"qid": q["qid"], "direct": check_direct(q, answer, ext), "abstains": ext.get("abstains"),
+    from .questions import _USE_CUE
+    any_use = bool(_USE_CUE.search(f"{rec.ficha.discussion} {rec.ficha.distribution_paragraph}"))
+    return {"qid": q["qid"], "direct": check_direct(q, answer, ext, any_use),
+            "record_mentions_any_use": any_use, "abstains": ext.get("abstains"),
             "stance": ext.get("stance"), "claims": claims, "claim_counts": counts}
 
 
