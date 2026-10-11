@@ -862,8 +862,9 @@ def generate_distribution_map(
     # ── Fuentes footer ────────────────────────────────────────────────────
     fig.text(
         0.5, 0.015,
-        "Fuentes: Regiones Botánicas (José Araya, 2026) · Áreas Silvestres Protegidas (SINAC) · "
-        "Altitud (SRTM, INEC) · Presencias GBIF · Manual de Plantas de Costa Rica",
+        "Fuentes: Regiones botánicas digitalizadas de M. V. Castro (Manual de Plantas de Costa Rica) · "
+        "Áreas Silvestres Protegidas (SINAC) · "
+        "Altitud (SRTM, INEC) · Presencias GBIF",
         ha="center", fontsize=5.8, color="#6b7280",
         transform=fig.transFigure,
     )
