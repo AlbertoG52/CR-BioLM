@@ -24,6 +24,8 @@ from __future__ import annotations
 import dataclasses
 import json
 import os
+import base64
+import dataclasses
 from pathlib import Path
 from typing import Optional
 
@@ -208,6 +210,7 @@ def get_species(name: str) -> dict:
         "morphology": f.morphology,
         "discussion": f.discussion,
         "genus_description": f.genus_description,
+        "common_names": f.common_names,
     }
     return _envelope(
         value,
@@ -323,6 +326,61 @@ def get_occurrences(
         caveat=caveat,
     )
 
+@server.tool()
+def get_occurrence_points(species: str, limit: int = 500) -> dict:
+    """Cleaned Costa Rica GBIF presence points for a species, one entry per record.
+
+    Cost: L1 — same disk cache as get_occurrences (the first call fetches from
+    GBIF, later calls are instant). No LLM.
+
+    The points are already cleaned by gbif_map: hasCoordinate=true,
+    hasGeospatialIssue=false, no (0,0), swapped lat/lon fixed, uncertainty
+    <= ~10 km. elev_m comes from the DEM at the point, not from the GBIF record.
+
+    Args:
+        species: scientific name e.g. "Quercus costaricensis"
+        limit: maximum number of points returned (the count n is always total)
+
+    Returns a provenance envelope whose value is:
+      {n, truncated, points: [{lat, lon, elev_m, region, vertiente}]}
+    """
+    citation = "GBIF occurrence API — Costa Rica (hasCoordinate=true, hasGeospatialIssue=false)"
+    pts = gbif_map.get_points(species)
+    if pts.empty:
+        return _envelope(
+            {"n": 0, "truncated": False, "points": []},
+            source="GBIF",
+            citation=citation,
+            confidence="insufficient",
+            caveat=f"No GBIF occurrences found for '{species}' in Costa Rica.",
+        )
+
+    def _num(v):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return None
+        return None if v != v else v  # NaN -> None
+
+    def _text(v):
+        return v if isinstance(v, str) and v else None
+
+    points = []
+    for _, p in pts.head(limit).iterrows():
+        elev = _num(p.get("Altitud"))
+        points.append({
+            "lat": round(p.geometry.y, 5),
+            "lon": round(p.geometry.x, 5),
+            "elev_m": None if elev is None else int(round(elev)),
+            "region": _text(p.get("Nombre")),
+            "vertiente": _text(p.get("Vertiente")),
+        })
+    return _envelope(
+        {"n": len(pts), "truncated": len(pts) > limit, "points": points},
+        source="GBIF",
+        citation=citation,
+        confidence="exact",
+    )
 
 @server.tool()
 def render_species_map(species: str) -> dict:
@@ -381,6 +439,38 @@ def render_species_map(species: str) -> dict:
                  "Regiones Botánicas (José Araya, 2026)",
         confidence="estimated",
         caveat=caveat,
+    )
+
+@server.tool()
+def get_species_map_image(species: str) -> dict:
+    """The render_species_map PNG itself, base64-encoded, for clients that run on
+    another machine or container and cannot open map_path.
+
+    Cost: L1 — same map and cache as render_species_map (no LLM). The PNG travels
+    inside the envelope, so expect a few hundred KB per call; MCP clients running
+    on this machine should prefer render_species_map and read map_path.
+
+    Args:
+        species: scientific name e.g. "Peltogyne purpurea"
+
+    Returns a provenance envelope whose value is:
+      {png_base64: str, n_pts: int, layer_summary: str}
+    or value None (confidence "insufficient") when no map can be rendered.
+    """
+    rendered = render_species_map(species)
+    if rendered["value"] is None:
+        return rendered
+    png = Path(rendered["value"]["map_path"]).read_bytes()
+    return _envelope(
+        {
+            "png_base64": base64.b64encode(png).decode("ascii"),
+            "n_pts": rendered["value"]["n_pts"],
+            "layer_summary": rendered["value"]["layer_summary"],
+        },
+        source=rendered["source"],
+        citation=rendered["citation"],
+        confidence=rendered["confidence"],
+        caveat=rendered["caveat"],
     )
 
 

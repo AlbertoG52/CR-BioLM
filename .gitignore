@@ -3,6 +3,9 @@ venv/
 env/
 .venv-app312/
 
+#tests
+probar_herramientas.py
+
 # Python cache (todos los subdirectorios)
 __pycache__/
 **/__pycache__/
