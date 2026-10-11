@@ -1,7 +1,6 @@
 # Entornos virtuales
 venv/
 env/
-.venv-app/
 .venv-app312/
 
 # Python cache (todos los subdirectorios)
