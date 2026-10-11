@@ -124,7 +124,9 @@ def plan(q: dict, ficha_facts: dict) -> dict | None:
             slope_ok = (not vert) or (slope in vert)
             new_key = {**key,
                        "answer": ("probable" if in_core and slope_ok else
-                                  "incierto" if in_core and not slope_ok else "improbable"),
+                                  "incierto" if (in_core and not slope_ok)
+                                  or (elev is not None and nlo - 200 <= elev <= nhi + 200)
+                                  else "improbable"),
                        "species_elevation": [nlo, nhi],
                        "species_elevation_effective": [nlo, nhi]}
         return {"overrides": ov, "place_overrides": None, "key": new_key,
@@ -165,6 +167,15 @@ def plan(q: dict, ficha_facts: dict) -> dict | None:
                    "improbable" if not overlap_r and not overlap_e else "incierto")
             altered = f"records in place {had} -> 0"
         else:
+            if key.get("answer") == "improbable":
+                # Planting records in a park the pack still describes as overlapping
+                # neither the species' regions nor its elevation makes the evidence
+                # contradict itself. In the 20-species run both grounded models saw the
+                # planted records, said so, and sided with the overlap facts -- which
+                # was scored as ignoring the evidence, 0 of 11 and 1 of 10 followed. A
+                # pack that disagrees with itself cannot test fidelity, so the question
+                # is refused and counted with the other non-perturbable ones.
+                return None
             po = {"n_since_1970": 7, "n_records": 7}
             ans = "sí"
             altered = "records in place 0 -> 7"

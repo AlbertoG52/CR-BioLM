@@ -87,6 +87,19 @@ def call(spec: str, messages: list[dict], *, pin: tuple[str, ...] = (),
                     time.sleep(BACKOFF_S)
                     continue
                 raise CallError(f"{spec}: {last}")
+            if finish == "length":
+                # A truncated answer is the same failure as a blank one, only harder to
+                # see: the reasoning used most of the budget and the reply stops in
+                # mid-sentence. 44 of 2,062 answers in the 20-species run were cut this
+                # way, all from the reasoning generator, and they were scored as they
+                # stood. Widen the budget and retry; never record a cut answer.
+                last = (f"truncated (finish_reason=length, completion_tokens="
+                        f"{usage.get('completion_tokens')})")
+                if attempt < RETRIES:
+                    body["max_tokens"] = int(body.get("max_tokens", MAX_TOKENS) * 1.5)
+                    time.sleep(BACKOFF_S)
+                    continue
+                raise CallError(f"{spec}: {last}")
             return {
                 "answer_text": text.strip(),
                 "model_id": spec,

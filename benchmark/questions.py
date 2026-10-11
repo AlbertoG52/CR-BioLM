@@ -29,6 +29,9 @@ from mpcr_rag.store import pg_store
 
 from .cooccurrence import QUESTION as CO_QUESTION, key_for as co_key_for
 from .regions import effective as _effective_regions
+from .regions import effective_slopes as _effective_slopes
+
+CULTIVATION_MARGIN_M = 200   # same margin as verify.ELEV_TOL_M
 
 # Every key states what it is: the answer the scientific record supports. The Manual and
 # the snapshot are incomplete for some species (a cosmopolitan weed collected once in
@@ -188,9 +191,15 @@ def for_species(cur, item: dict, rng) -> list[dict]:
                            "outlier_min": f.elev_outlier_min, "outlier_max": f.elev_outlier_max},
                    "key_level": "stated", "key_source": [cite]})
     if f.vertientes:
+        # Two answers are accepted when records show the species on a slope the Manual
+        # does not name: the Manual's, and the Manual's plus the records' (regions.py).
+        slopes = _effective_slopes(sp, f.vertientes)
         qs.append({"qtype": "vertiente",
                    "question": f"¿{sp} crece en la vertiente Caribe, en la Pacífica o en ambas?",
-                   "key": {"vertientes": f.vertientes}, "key_level": "stated", "key_source": [cite]})
+                   "key": {"vertientes": f.vertientes,
+                           "vertientes_with_records": slopes["union"],
+                           "vertientes_inferred": slopes["inferred"]},
+                   "key_level": "stated", "key_source": [cite]})
     if f.flowering_months:
         qs.append({"qtype": "flowering",
                    "question": f"¿En qué meses florece {sp} en Costa Rica?",
@@ -230,8 +239,14 @@ def for_species(cur, item: dict, rng) -> list[dict]:
         in_core = f.elev_min <= elev <= f.elev_max
         in_eff = eff[0] <= elev <= eff[1]
         slope_ok = not f.vertientes or slope in f.vertientes
+        # A site just outside the range is not the same as one far from it. Within the
+        # 200 m margin the checker already allows on a stated elevation, the honest
+        # verdict is "incierto", not "improbable": a farm at 1,000 m and a species
+        # recorded to 900 m is a judgement call. Raised in the hand review (row V06).
+        near = eff[0] - CULTIVATION_MARGIN_M <= elev <= eff[1] + CULTIVATION_MARGIN_M
         verdict = ("probable" if in_core and slope_ok else
-                   "incierto" if in_eff or (in_core and not slope_ok) else "improbable")
+                   "incierto" if in_eff or near or (in_core and not slope_ok)
+                   else "improbable")
         qs.append({"qtype": "cultivation",
                    "question": f"Tengo una finca {place} (unos {elev} m de altitud). "
                                f"¿Podría sembrar {sp} ahí?",
@@ -240,6 +255,12 @@ def for_species(cur, item: dict, rng) -> list[dict]:
                                     "outside the natural range under cultivation is NOT tested — "
                                     "an answer saying so is not wrong",
                            "setting_elevation": elev, "setting_slope": slope,
+                           "margin_m": CULTIVATION_MARGIN_M,
+                           # Inside the margin and outside the range, the reading
+                           # without the margin stays acceptable: nothing tells a system
+                           # where "near" ends, so "improbable" is not an error there.
+                           "also_accepts": ("improbable" if verdict == "incierto"
+                                            and not in_eff and not in_core else None),
                            "species_elevation": [f.elev_min, f.elev_max],
                            "species_elevation_effective": list(eff), "species_vertientes": f.vertientes},
                    "key_level": "inferred_data", "key_source": [cite, "elevation/slope rule"]})

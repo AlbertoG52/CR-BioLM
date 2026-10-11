@@ -110,8 +110,17 @@ def _month(name: str) -> int:
     return {_norm(k): v for k, v in _MONTHS.items()}[name]
 
 
+_SLOPE_DENIED = re.compile(
+    r"(?:\bno\b(?!\s+(?:solo|solamente|unicamente))|\bsin\b|\bni\b|\bausente\b|\bnunca\b)"
+    r"[^.;:]{0,70}?(?:caribe|atlantic\w*|pacific\w*)")
+
+
 def parse_slopes(text: str) -> set[str]:
     t = _norm(text)
+    # A slope named only to be ruled out is not a slope claimed. "Crece en la vertiente
+    # Pacífica, sin registros para la vertiente Caribe" says Pacific, and reading both
+    # names off it scored a correct answer as naming two slopes.
+    t = _SLOPE_DENIED.sub(" ", t)
     if re.search(r"ambas vertientes|ambas|las dos vertientes|ambos lados", t):
         return {"Caribe", "Pacífico"}
     out = set()
@@ -176,6 +185,7 @@ def extract(question: str, answer: str, spec: str = EXTRACTOR) -> dict:
 class Record:
     ficha: Ficha
     gbif_regions: set[str] = field(default_factory=set)
+    record_slopes: set[str] = field(default_factory=set)   # slopes with >=5 records
     parks_with_records: dict[str, int] = field(default_factory=dict)   # normalized name -> n
     parks: dict[str, dict] = field(default_factory=dict)               # normalized name -> row
 
@@ -201,6 +211,8 @@ def load_record(cur, species: str) -> Record:
     cur.execute("SELECT name, label, elev_p05, elev_p95, regions FROM mpcr.places")
     rec.parks = {_norm(n): {"label": l, "lo": lo, "hi": hi, "regions": rg}
                  for n, l, lo, hi, rg in cur.fetchall()}
+    from .regions import effective_slopes
+    rec.record_slopes = set(effective_slopes(species, rec.ficha.vertientes)["inferred"])
     return rec
 
 
@@ -247,7 +259,7 @@ def check_claim(claim: dict, rec: Record) -> str:
         s = parse_slopes(text)
         if not s or not f.vertientes:
             return "unverifiable"
-        return "supported" if s <= set(f.vertientes) else "contradicted"
+        return "supported" if s <= (set(f.vertientes) | rec.record_slopes) else "contradicted"
     if ctype == "phenology":
         m = parse_months(text)
         if not m or not f.flowering_months:
@@ -347,7 +359,12 @@ def check_direct(q: dict, answer: str, ext: dict,
     if ext.get("abstains") and ext.get("stance") in ("uncertain", "none", None):
         return "abstained"
     if qtype.startswith("park_") or qtype == "cultivation":
-        return _STANCE_TABLE[key["answer"]].get(ext.get("stance"), "abstained")
+        got = _STANCE_TABLE[key["answer"]].get(ext.get("stance"), "abstained")
+        also = key.get("also_accepts")
+        if got != "correct" and also and \
+                _STANCE_TABLE[also].get(ext.get("stance")) == "correct":
+            return "correct"
+        return got
     if qtype == "elevation":
         ivs = parse_elevations(answer)
         if not ivs:
@@ -362,7 +379,13 @@ def check_direct(q: dict, answer: str, ext: dict,
         return "correct" if within and covers_core else "partially_correct"
     if qtype == "vertiente":
         s, k = parse_slopes(answer), set(key["vertientes"])
-        return "abstained" if not s else ("correct" if s == k else ("partially_correct" if s & k else "wrong"))
+        # Where records show the species on a slope the Manual does not name, the
+        # Manual's answer and the Manual-plus-records answer are both right.
+        also = set(key.get("vertientes_with_records") or k)
+        # An answer that leaves out the Manual's own slope is not partly right, even if
+        # a few records sit on the slope it does name.
+        return "abstained" if not s else ("correct" if s in (k, also) else
+                                          ("partially_correct" if s & k else "wrong"))
     if qtype == "flowering":
         m, k = parse_months(answer), set(key["months"])
         if not m:

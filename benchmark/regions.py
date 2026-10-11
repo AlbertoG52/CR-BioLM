@@ -62,3 +62,39 @@ def effective(species: str, stated) -> dict:
 
 def union(species: str, stated) -> list[str]:
     return effective(species, stated)["union"]
+
+
+@lru_cache(maxsize=1)
+def _record_slopes() -> dict[str, set]:
+    """species -> slopes holding at least MIN_RECORDS cleaned records."""
+    from mpcr_rag.store import pg_store
+    conn = pg_store.connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""SELECT species, vertiente, count(*) FROM mpcr.occurrences
+                           WHERE species IS NOT NULL AND vertiente IS NOT NULL
+                           GROUP BY species, vertiente HAVING count(*) >= %s""",
+                        (MIN_RECORDS,))
+            out: dict[str, set] = {}
+            for sp, v, _n in cur.fetchall():
+                out.setdefault(sp, set()).add("Caribe" if "arib" in v else "Pacífico")
+            return out
+    finally:
+        conn.close()
+
+
+def effective_slopes(species: str, stated) -> dict:
+    """{stated, inferred, union} for the slopes, by the same rule as the regions.
+
+    A slope is additive in the way a region is: records on the Caribbean side do not
+    contradict a Manual that says Pacific, they add to it. But the slope question asks
+    for an exact answer -- Caribbean, Pacific or both -- so the key cannot simply become
+    the union, or an answer faithful to the Manual would be marked incomplete. Both
+    answers are therefore accepted: what the Manual states, and what the Manual states
+    plus what at least five records show. Raised in the hand review of the checker
+    (rows V07 and V09), where the map plainly showed records on the other slope.
+    """
+    stated = list(stated or [])
+    inferred = sorted(_record_slopes().get(species, set()) - set(stated))
+    return {"stated": stated, "inferred": inferred,
+            "union": sorted(set(stated) | set(inferred))}

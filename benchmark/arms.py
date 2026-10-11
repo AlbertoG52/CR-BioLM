@@ -200,8 +200,8 @@ def template_answer(question: str, qtype: str, facts: dict) -> str:
         slope_ok = (not vert) or (slope in vert) or not slope
         if in_core and slope_ok:
             v = "probable"
-        elif in_eff or (in_core and not slope_ok):
-            v = "incierto"
+        elif in_eff or (eff[0] - 200 <= elev <= eff[1] + 200) or (in_core and not slope_ok):
+            v = "incierto"      # the 200 m margin of questions.CULTIVATION_MARGIN_M
         else:
             v = "improbable"
         return (f"Es {v}. El registro ubica a {sp} entre {lo} y {hi} m"
