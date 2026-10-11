@@ -60,7 +60,9 @@ def call(spec: str, messages: list[dict], *, pin: tuple[str, ...] = (),
             latency_ms = int((time.time() - t0) * 1000)
             if r.status_code != 200:
                 last = f"HTTP {r.status_code}: {r.text[:300]}"
-                if r.status_code in (408, 429, 500, 502, 503, 504):
+                # 520-524 are the gateway's "upstream misbehaved" family; like the
+                # others they clear on a retry.
+                if r.status_code in (408, 429, 500, 502, 503, 504, 520, 522, 524):
                     time.sleep(BACKOFF_S * attempt)
                     continue
                 raise CallError(f"{spec}: {last}")

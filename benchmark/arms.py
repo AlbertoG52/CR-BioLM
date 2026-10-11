@@ -44,6 +44,7 @@ class Arm:
     web: bool = False
     note: str = ""
     prompt: str = "shared"     # prompt family, see prompts.FAMILIES
+    routed: bool = False       # True = the router picks species, recipe and place
 
     @property
     def pin(self) -> tuple[str, ...]:
@@ -71,10 +72,20 @@ ARMS = {a.name: a for a in [
     Arm("FM", OPEN, "map", prompt="map",
         note="grounded by MAP ONLY, open weights: same model as F"),
     Arm("G",  None, "full", note="template, no model: the floor"),
+    Arm("R",  OPEN, "full", routed=True,
+        note="AGENT-ROUTED: same generator and evidence as F, but the router reads the "
+             "bare question and chooses species, recipe and place. F is its oracle-"
+             "routed twin, so F minus R is what routing errors cost"),
 ]}
 
 # Arms runnable today. B waits on the search mechanism being confirmed.
-READY = [n for n in ("G", "A1", "A1F", "C", "CF", "D", "E", "F", "DM", "FM")]
+READY = [n for n in ("G", "A1", "A1F", "C", "CF", "D", "E", "F", "DM", "FM", "R")]
+
+# What the routed arm says when the router cannot serve the question: no species
+# resolved, an exit route, or a park it could not identify. A deployed system that
+# answered closed-book here would be passing an ungrounded answer off as grounded.
+UNROUTED = ("No pude identificar con certeza la especie o el lugar de la pregunta en el "
+            "registro consultado, así que no puedo responderla.")
 
 # The map condition only applies where a map can carry the evidence: the asked-about
 # area has to be drawable and the answer has to turn on geometry. Elsewhere a picture

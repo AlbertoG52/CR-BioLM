@@ -34,7 +34,7 @@ from pathlib import Path
 from mpcr_rag.store import pg_store
 
 from . import arms as A
-from . import client, prompts
+from . import client, prompts, router
 from .evidence_pack import build as build_pack
 from .qmap import render as render_qmap
 
@@ -179,7 +179,39 @@ def main() -> None:
                 pack = None
                 img_b64 = None
                 map_shown = None
-                if arm.evidence == "map":
+                routing = None
+                if arm.routed and not args.dry_run:
+                    # The router sees the question and nothing else. What it returns
+                    # replaces the species, type and place the harness would otherwise
+                    # have handed over; the gold values are recorded beside it so the
+                    # routing error is auditable per row.
+                    try:
+                        r = router.route(cur, q["question"])
+                    except Exception as e:
+                        # A router call that failed is not a question the router
+                        # declined. It becomes an error row, which resume retries.
+                        jobs.append({"arm": arm, "messages": None, "template": None,
+                                     "prep_error": f"router: {type(e).__name__}: {e}",
+                                     "base": {"qid": q["qid"], "arm": arm_name,
+                                              "replicate": args.replicate,
+                                              "species": q["species"],
+                                              "qtype": q["qtype"]}})
+                        continue
+                    rec = router.recipe(r)
+                    routing = {"route": r["route"], "species": r["species"],
+                               "place_code": r["place_code"], "served": rec is not None,
+                               "route_ok": r["route"] == router.QTYPE_ROUTE.get(
+                                   q["qtype"], q["qtype"]),
+                               "species_ok": r["species"] == q["species"],
+                               "place_ok": (q["key"].get("place_code") is None
+                                            or r["place_code"] == q["key"].get("place_code")),
+                               "cost_usd": r["proposal"].get("_cost_usd")}
+                    if rec:
+                        pack = build_pack(cur, rec[0], rec[1], level="full",
+                                          place_code=rec[2])
+                elif arm.routed:
+                    pass            # dry run: routing costs a call, so it is skipped
+                elif arm.evidence == "map":
                     pk = build_pack(cur, q["species"], q["qtype"], level="full",
                                     place_code=q["key"].get("place_code"))
                     # Region overlap is half of what a protected-area key turns on,
@@ -211,14 +243,16 @@ def main() -> None:
                             print(A.template_answer(q["question"], q["qtype"], pack.facts), "\n")
                     continue
 
+                unrouted = arm.routed and pack is None
                 jobs.append({
                     "arm": arm,
                     "messages": (prompts.build(q["question"],
                                                pack.text() if pack else None,
                                                family=arm.prompt, image_b64=img_b64)
-                                 if arm.is_llm else None),
-                    "template": (None if arm.is_llm else
+                                 if arm.is_llm and not unrouted else None),
+                    "template": (A.UNROUTED if unrouted else None if arm.is_llm else
                                  A.template_answer(q["question"], q["qtype"], pack.facts)),
+                    "routing": routing,
                     "base": {"qid": q["qid"], "arm": arm_name, "replicate": args.replicate,
                              "species": q["species"], "qtype": q["qtype"],
                              "prompt_template_hash": thashes.get(arm_name),
@@ -226,6 +260,7 @@ def main() -> None:
                              "evidence_pack_hash": pack.hash if pack else None,
                              "evidence_providers": pack.providers if pack else [],
                              "map_shown": map_shown,
+                             "routing": routing,
                              "evidence_level": arm.evidence},
                 })
     finally:
@@ -248,8 +283,10 @@ def main() -> None:
         with lock:
             if state["halt"]:
                 return {}
+        if job.get("prep_error"):
+            return {**base, "answer_text": None, "error": job["prep_error"]}
         try:
-            if job["arm"].is_llm:
+            if job["arm"].is_llm and job["messages"] is not None:
                 res = client.call(job["arm"].model, job["messages"], pin=job["arm"].pin)
             else:
                 res = {"answer_text": job["template"], **TEMPLATE_RES}
