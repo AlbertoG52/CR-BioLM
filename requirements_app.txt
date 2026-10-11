@@ -1,4 +1,5 @@
 # Web app dependencies only — no ML stack (torch, shap, rasterio etc. stay local)
+#prueba
 fastapi==0.136.0
 uvicorn==0.44.0
 jinja2==3.1.6
