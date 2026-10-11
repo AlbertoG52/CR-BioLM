@@ -31,6 +31,22 @@ from .evidence_pack import build as build_pack
 DATA = Path(__file__).resolve().parent / "data"
 
 
+def _dedupe(rows: list[dict]) -> list[dict]:
+    """One row per (qid, arm, replicate), last write wins.
+
+    Two scoring passes over the same answers append two verdict rows. They usually
+    agree, but the local segmenter is not bit-reproducible under concurrency -- batch
+    composition varies and float reduction order with it -- so 2 of 1,253 duplicate
+    pairs in the 20-species run disagreed. Counting both would weight those answers
+    twice and make a table depend on how many times scoring happened to run.
+    """
+    keep = {}
+    for r in rows:
+        if r.get("qid"):
+            keep[(r["qid"], r.get("arm"), r.get("replicate", 0))] = r
+    return list(keep.values()) if keep else rows
+
+
 def _jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
