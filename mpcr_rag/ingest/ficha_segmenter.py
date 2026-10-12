@@ -179,6 +179,34 @@ def dehyphenate(text: str) -> str:
     return re.sub("­(?=\\S)", "", text)          # stray soft hyphen: "­Caraigres"
 
 
+_BARE_UPPER = re.compile(r"^\s*\d[\d\s.,]*\s*m\s*;")          # "2800 m; ambas verts. ..."
+_DANGLING = re.compile(r"\d\s*[–—-]\s*$")                     # "... montanos, 600–"
+_HABITAT_OPEN = re.compile(r"(?:^|(?<=[.;]\s))(Bosque|Sabana|Manglar|Páramo|Charral|Vegetaci"
+                           r"|Matorral|Pastizal|Arrecifes|Playas|Aguas|Lagunas|Pantanos"
+                           r"|Charcas|Humedales)")
+
+
+def _rejoin_split_range(morphology: str | None, dist: str | None):
+    """Put back together a distribution paragraph cut in the middle of its elevation.
+
+    A block break can fall between the two bounds of the range: the description block
+    then ends "... bosques montanos, 600–" and the distribution block opens "2800 m;
+    ambas verts. ...". The habitat sentence and the lower bound were filed as
+    description, the paragraph kept a bare upper bound that parses as no elevation at
+    all, and the map lost its elevation band (Calyptranthes pittieri, found when an
+    expert review sheet showed the map without one). Both ends must match, so an intact
+    entry is never touched.
+    """
+    if not morphology or not dist or not _BARE_UPPER.match(dist) \
+            or not _DANGLING.search(morphology):
+        return morphology, dist
+    opens = [m.start(1) for m in _HABITAT_OPEN.finditer(morphology)]
+    if not opens:
+        return morphology, dist
+    cut = opens[-1]
+    return morphology[:cut].rstrip(), morphology[cut:].rstrip() + dist.lstrip()
+
+
 def _is_caption(block: str) -> bool:
     """Figure label, not prose. A short description ("Hierba anual.") has the same
     two-word shape as a bare binomial, so habit/description openers are excluded."""
@@ -337,6 +365,8 @@ def segment(pdf_path: str, *, volume: str = "", family: str = "") -> list[RawFic
             current.discussion = _append(current.discussion, block)
 
     for f in fichas:
+        f.morphology, f.distribution_paragraph = _rejoin_split_range(
+            f.morphology, f.distribution_paragraph)
         # A figure label (the species' own name) glued inside a block: "Cords. de
         # Tilarán, Central y Sanicula liberta de Talamanca" hid Cordillera Central from
         # the parser. The species never names itself inside these two sections.

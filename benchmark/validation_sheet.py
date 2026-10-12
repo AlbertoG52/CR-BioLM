@@ -75,10 +75,12 @@ def key_text(q: dict) -> str:
                 else "El registro NO menciona ningún uso comestible ni medicinal. Lo "
                      "correcto es decir que no hay información (o negarlo).")
     if t == "co_occurrence":
-        return ("Sin lista de referencia: cada especie nombrada debe compartir región "
-                f"botánica y banda altitudinal con la especie. Regiones: "
-                f"{', '.join(k.get('regions') or k.get('species_regions') or [])}; altitud: "
-                f"{k.get('elevation') or k.get('elev') or ''}.")
+        return ("Sin lista de referencia: cada especie nombrada debe poder convivir con "
+                "esta, es decir, compartir región botánica y banda altitudinal. Regiones: "
+                f"{', '.join(k.get('subject_regions') or [])}; altitud: "
+                f"{k.get('subject_elevation')} m.")
+    if t == "light":
+        return "Sin clave: el registro no indica si prefiere sol o sombra."
     return json.dumps(k, ensure_ascii=False)
 
 
