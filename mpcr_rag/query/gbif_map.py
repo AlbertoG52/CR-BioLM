@@ -251,6 +251,14 @@ def most_likely_map(species_scores: list[tuple[Ficha, float]], *, query_text: st
         band.append(f"vert. {constraints['vertiente']}")
     if constraints.get("region"):
         band.append(constraints["region"])
+    # Source credit: the botanical-region base map is a digitization of the
+    # phytogeographic map drawn by M. V. Castro for the Manual de Plantas de CR.
+    fig.text(
+        0.5, 0.01,
+        "Fuentes: Regiones botánicas digitalizadas de M. V. Castro "
+        "(Manual de Plantas de Costa Rica) · Presencias GBIF",
+        ha="center", fontsize=5.5, color="#787878", transform=fig.transFigure,
+    )
     ax.set_title(f"GBIF — presencias más probables\n{query_text}\n"
                  f"[{'  ·  '.join(band)}]  n={n_pts} puntos", fontsize=9)
     ax.set_axis_off()

@@ -2,13 +2,14 @@
 {"qid": "Dalbergia_retusa__elevation", "label": "wrong (montane)", "answer": "Es una especie de montaña que crece entre 1.500 y 2.500 m de altitud.", "expected_direct": "wrong", "expected_contradicted": true}
 {"qid": "Dalbergia_retusa__elevation", "label": "overextended", "answer": "Crece entre 0 y 1200 m.", "expected_direct": "partially_correct", "expected_contradicted": true}
 {"qid": "Dalbergia_retusa__vertiente", "label": "correct + places", "answer": "Principalmente en la vertiente Pacífica, sobre todo en las llanuras de Guanacaste y la península de Nicoya.", "expected_direct": "correct", "expected_contradicted": false}
-{"qid": "Dalbergia_retusa__vertiente", "label": "wrong slope", "answer": "Crece en la vertiente Caribe, especialmente en las llanuras de Tortuguero.", "expected_direct": "wrong", "expected_contradicted": true}
+{"qid": "Albizia_niopoides__vertiente", "label": "wrong slope", "answer": "Crece en la vertiente Caribe, especialmente en las llanuras de Tortuguero.", "expected_direct": "wrong", "expected_contradicted": true}
+{"qid": "Dalbergia_retusa__vertiente", "label": "only the slope a few records show", "answer": "Crece en la vertiente Caribe.", "expected_direct": "wrong", "expected_contradicted": false}
 {"qid": "Dalbergia_retusa__flowering", "label": "correct", "answer": "Florece durante la época seca, de enero a abril.", "expected_direct": "correct"}
 {"qid": "Dalbergia_retusa__flowering", "label": "wrong months", "answer": "Florece de julio a octubre, en la época lluviosa.", "expected_direct": "wrong", "expected_contradicted": true}
 {"qid": "Dalbergia_retusa__endemism", "label": "correct", "answer": "No, no es endémica; se distribuye desde México hasta Colombia.", "expected_direct": "correct", "expected_contradicted": false}
 {"qid": "Dalbergia_retusa__endemism", "label": "wrong", "answer": "Sí, es una especie endémica de Costa Rica.", "expected_direct": "wrong", "expected_contradicted": true}
 {"qid": "Dalbergia_retusa__park_unlikely", "label": "correct", "answer": "Es muy poco probable: la reserva está a más de 2.700 m y esta especie es de tierras bajas.", "expected_direct": "correct"}
-{"qid": "Dalbergia_retusa__park_unlikely", "label": "wrong + bad place", "answer": "Sí, es común en la Reserva Biológica Cerro Las Vueltas.", "expected_direct": "wrong", "expected_contradicted": true}
+{"qid": "Dalbergia_retusa__park_unlikely", "label": "wrong + bad place", "answer": "Sí, es común en el Parque Nacional Tapantí-Macizo de la Muerte.", "expected_direct": "wrong", "expected_contradicted": true}
 {"qid": "Dalbergia_retusa__park_possible", "label": "overconfident", "answer": "Sí, seguro la vas a ver en Carara, es muy común ahí.", "expected_direct": "overstated"}
 {"qid": "Dalbergia_retusa__park_possible", "label": "correct hedge", "answer": "Es posible: Carara tiene bosque seco y húmedo a baja altitud, pero no puedo confirmar que haya registros ahí.", "expected_direct": "correct"}
 {"qid": "Dalbergia_retusa__park_confirmed", "label": "abstain", "answer": "No tengo información sobre su presencia en ese parque.", "expected_direct": "abstained"}
@@ -21,4 +22,13 @@
 {"qid": "Cryptocentrum_flavum__growth_form", "label": "wrong", "answer": "Es un arbusto pequeño de sotobosque.", "expected_direct": "wrong", "expected_contradicted": true}
 {"qid": "Cryptocentrum_flavum__elevation", "label": "abstain", "answer": "No tengo datos sobre la altitud a la que crece esta orquídea.", "expected_direct": "abstained"}
 {"qid": "Cryptocentrum_flavum__park_unlikely", "label": "overstated + bad place", "answer": "Es posible que la veas en Manuel Antonio, las orquídeas son comunes allí.", "expected_direct": "overstated", "expected_contradicted": true}
-{"qid": "Cryptocentrum_flavum__cultivation", "label": "wrong", "answer": "Sí, crece bien en cualquier jardín tropical cerca de la costa.", "expected_direct": "wrong"}
+{"qid": "Cryptocentrum_flavum__cultivation", "label": "wrong", "answer": "Sí, crece muy bien a esa altitud en las faldas del Irazú.", "expected_direct": "wrong"}
+{"qid": "Clethra_consimilis__park_confirmed", "label": "affirmative 'si, es posible' with records", "answer": "Sí, es posible encontrar Clethra consimilis en el Parque Nacional Tapantí-Macizo de la Muerte, pues existen 8 registros confirmados de la especie dentro de esta área protegida desde 1970.", "expected_direct": "correct"}
+{"qid": "Clethra_consimilis__park_confirmed", "label": "real hedge on a confirmed park", "answer": "Podría encontrarse allí porque el hábitat coincide, pero no se puede asegurar que esté presente.", "expected_direct": "understated"}
+{"qid": "Clethra_consimilis__park_possible", "label": "'si, es posible' without records", "answer": "Sí, es posible, aunque no existen registros de la especie dentro del Parque Nacional Volcán Poás; el área coincide con sus regiones botánicas y con su rango altitudinal.", "expected_direct": "correct"}
+{"qid": "Clethra_consimilis__park_possible", "label": "asserts records on a possible park", "answer": "Sí, es posible encontrarla: hay registros confirmados de la especie dentro del Parque Nacional Volcán Poás.", "expected_direct": "overstated"}
+{"qid": "Dalbergia_retusa__outside_record", "label": "denial + a use the entry states", "answer": "No se menciona que Dalbergia retusa sea comestible ni que tenga usos medicinales; el Manual solo indica que su madera es muy apreciada.", "expected_direct": "correct"}
+{"qid": "Dalbergia_retusa__outside_record", "label": "invented remedy", "answer": "Su corteza se usa en infusión para tratar la fiebre.", "expected_direct": "beyond_record"}
+{"qid": "Dalbergia_retusa__vertiente", "label": "one slope, the other ruled out", "answer": "Crece en la vertiente Pacífica; la evidencia no muestra registros para la vertiente Caribe.", "expected_direct": "correct"}
+{"qid": "Dalbergia_retusa__vertiente", "label": "exclusively one, not the other", "answer": "Crece exclusivamente en la vertiente Pacífica; no se encuentra en la vertiente Caribe.", "expected_direct": "correct"}
+{"qid": "Dalbergia_retusa__vertiente", "label": "not only: both slopes", "answer": "No solo crece en la vertiente Pacífica, sino también en la del Caribe.", "expected_direct": "correct"}

@@ -1,0 +1,14 @@
+\begin{tabular}{p{6.4cm}rrrrrr}
+\toprule
+Contrast ($x$ vs.\ $y$) & Pairs & $x$ correct & $y$ correct & $x$ only & $y$ only & $p$ \\
+\midrule
+Grounded vs.\ closed book, free prompt (D, A1F) & 204 & 197 & 99 & 100 & 2 & $<$0.001 \\
+Grounded vs.\ closed book, careful prompt (D, A1) & 206 & 199 & 77 & 123 & 1 & $<$0.001 \\
+Full pack vs.\ flora only, park questions (D, E) & 59 & 58 & 36 & 23 & 1 & $<$0.001 \\
+Full pack vs.\ flora only, all other types (D, E) & 156 & 150 & 131 & 20 & 1 & $<$0.001 \\
+Text pack vs.\ map, same model (D, DM) & 79 & 78 & 56 & 23 & 1 & $<$0.001 \\
+Text pack vs.\ map, open weights (F, FM) & 79 & 79 & 43 & 36 & 0 & $<$0.001 \\
+Frontier vs.\ open weights, both grounded (D, F) & 216 & 209 & 208 & 4 & 3 & 1.000 \\
+Model vs.\ template, same evidence (D, G) & 216 & 209 & 195 & 18 & 4 & 0.004 \\
+\bottomrule
+\end{tabular}

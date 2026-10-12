@@ -27,6 +27,12 @@ from mpcr_rag.ingest.field_extractor import _FAMILY_HABIT, _match_habits
 from mpcr_rag.schema import Ficha
 from mpcr_rag.store import pg_store
 
+from .cooccurrence import QUESTION as CO_QUESTION, key_for as co_key_for
+from .regions import effective as _effective_regions
+from .regions import effective_slopes as _effective_slopes
+
+CULTIVATION_MARGIN_M = 200   # same margin as verify.ELEV_TOL_M
+
 # Every key states what it is: the answer the scientific record supports. The Manual and
 # the snapshot are incomplete for some species (a cosmopolitan weed collected once in
 # Costa Rica), so a key can be right about the record and wrong about the field.
@@ -75,6 +81,19 @@ def _accented(label: str) -> str:
 _USE_CUE = re.compile(r"\b(comestible|medicinal|madera|cultivad|cult\.|ornamental|venenos|t[óo]xic|"
                       r"frutos? comestibles|se usa|usad[ao]s?)\b", re.I)
 
+# The question asks about EDIBILITY or MEDICINE, so its key must turn on those and not
+# on any use whatever. Keyed off _USE_CUE, eight of the nine "the Manual states a use"
+# cases were nothing of the kind: three ornamental, two madera, three a bare "se usa".
+# Dalbergia retusa was keyed as stating a use because its entry mentions rosewood
+# timber, so a system that correctly declined on edibility would score understated.
+#
+# _USE_CUE still measures "any use mentioned" for the catalogue-wide answerability
+# figure, which is a different and also useful number: 249 species (3.6%) there against
+# 133 (1.9%) here. The paper reports 1.9% for this question.
+_EDIBLE_MED_CUE = re.compile(
+    r"\b(comestibles?|medicinal(?:es)?|se come|comest\.|infusi[óo]n|remedio|"
+    r"curativ[ao]s?|frutos? comestibles)\b", re.I)
+
 
 def _ficha(cur, species: str) -> Ficha:
     cur.execute("SELECT ficha FROM mpcr.fichas WHERE species = %s", (species,))
@@ -103,7 +122,12 @@ def _park_keys(cur, f: Ficha, taxon_key, rng) -> list[dict]:
         recorded = {c: (n70, n) for c, n70, n in cur.fetchall()}
 
     eff = _eff(f)
-    regions = set(f.regions)
+    # The species' range is the Manual's regions plus any region holding at least five
+    # cleaned records (benchmark/regions.py). The Manual's stated range is incomplete
+    # for 50 of the 117 sampled species, and treating a region with 103 specimens as
+    # outside the range would key "improbable" against the evidence.
+    _reg = _effective_regions(f.species, f.regions)
+    regions = set(_reg["union"])
     confirmed, possible, unlikely = [], [], []
     for p in parks:
         n70, n_all = recorded.get(p["code"], (0, 0))
@@ -127,7 +151,9 @@ def _park_keys(cur, f: Ficha, taxon_key, rng) -> list[dict]:
             "question": f"Si visito el {_accented(p['label'])}, ¿puedo encontrarme con {f.species}?",
             "key": {"answer": value, "place_code": p["code"], "records_in_place": n,
                     "place_elevation_p05_p95": [round(p["lo"]), round(p["hi"])],
-                    "place_regions": p["regions"], "species_regions": f.regions,
+                    "place_regions": p["regions"], "species_regions": _reg["union"],
+                    "species_regions_stated": _reg["stated"],
+                    "species_regions_inferred": _reg["inferred"],
                     "species_elevation_effective": list(eff) if eff else None},
             "key_level": "inferred_data" if kind != "confirmed" else "stated_by_records",
             "key_source": ["GBIF snapshot 10.15468/dl.8yhee8", "MPCR regions + elevation",
@@ -136,11 +162,27 @@ def _park_keys(cur, f: Ficha, taxon_key, rng) -> list[dict]:
     return out
 
 
+def _stream(species: str, qtype: str) -> random.Random:
+    """An independent random stream per (species, question type).
+
+    One shared stream made the benchmark fragile in a way that only showed up when a
+    rule changed: `_park_keys` draws from it, so widening the species' regions altered
+    how many draws it consumed, which shifted every later draw and silently rewrote 60
+    cultivation questions -- Mimosa asperata went from being asked about Volcan Irazu
+    at 2,800 m to Puntarenas at 10 m. The keys were right both times; they were answers
+    to different questions.
+
+    Seeding per type means a change to one rule can never perturb another, so a diff
+    after an edit shows only what the edit was meant to touch.
+    """
+    return random.Random(f"{SEED}-{species}-{qtype}")
+
+
 def for_species(cur, item: dict, rng) -> list[dict]:
     f = _ficha(cur, item["species"])
     sp = f.species
     cite = f"Manual de Plantas de Costa Rica, Tomo {f.volume}, p. {f.pages}"
-    qs = _park_keys(cur, f, item.get("taxon_key"), rng)
+    qs = _park_keys(cur, f, item.get("taxon_key"), _stream(sp, "park"))
 
     if f.elev_min is not None:
         qs.append({"qtype": "elevation",
@@ -149,9 +191,15 @@ def for_species(cur, item: dict, rng) -> list[dict]:
                            "outlier_min": f.elev_outlier_min, "outlier_max": f.elev_outlier_max},
                    "key_level": "stated", "key_source": [cite]})
     if f.vertientes:
+        # Two answers are accepted when records show the species on a slope the Manual
+        # does not name: the Manual's, and the Manual's plus the records' (regions.py).
+        slopes = _effective_slopes(sp, f.vertientes)
         qs.append({"qtype": "vertiente",
                    "question": f"¿{sp} crece en la vertiente Caribe, en la Pacífica o en ambas?",
-                   "key": {"vertientes": f.vertientes}, "key_level": "stated", "key_source": [cite]})
+                   "key": {"vertientes": f.vertientes,
+                           "vertientes_with_records": slopes["union"],
+                           "vertientes_inferred": slopes["inferred"]},
+                   "key_level": "stated", "key_source": [cite]})
     if f.flowering_months:
         qs.append({"qtype": "flowering",
                    "question": f"¿En qué meses florece {sp} en Costa Rica?",
@@ -187,12 +235,18 @@ def for_species(cur, item: dict, rng) -> list[dict]:
 
     eff = _eff(f)
     if eff is not None:
-        place, elev, slope = rng.choice(SETTINGS)
+        place, elev, slope = _stream(sp, "cultivation").choice(SETTINGS)
         in_core = f.elev_min <= elev <= f.elev_max
         in_eff = eff[0] <= elev <= eff[1]
         slope_ok = not f.vertientes or slope in f.vertientes
+        # A site just outside the range is not the same as one far from it. Within the
+        # 200 m margin the checker already allows on a stated elevation, the honest
+        # verdict is "incierto", not "improbable": a farm at 1,000 m and a species
+        # recorded to 900 m is a judgement call. Raised in the hand review (row V06).
+        near = eff[0] - CULTIVATION_MARGIN_M <= elev <= eff[1] + CULTIVATION_MARGIN_M
         verdict = ("probable" if in_core and slope_ok else
-                   "incierto" if in_eff or (in_core and not slope_ok) else "improbable")
+                   "incierto" if in_eff or near or (in_core and not slope_ok)
+                   else "improbable")
         qs.append({"qtype": "cultivation",
                    "question": f"Tengo una finca {place} (unos {elev} m de altitud). "
                                f"¿Podría sembrar {sp} ahí?",
@@ -201,9 +255,27 @@ def for_species(cur, item: dict, rng) -> list[dict]:
                                     "outside the natural range under cultivation is NOT tested — "
                                     "an answer saying so is not wrong",
                            "setting_elevation": elev, "setting_slope": slope,
+                           "margin_m": CULTIVATION_MARGIN_M,
+                           # Inside the margin and outside the range, the reading
+                           # without the margin stays acceptable: nothing tells a system
+                           # where "near" ends, so "improbable" is not an error there.
+                           "also_accepts": ("improbable" if verdict == "incierto"
+                                            and not in_eff and not in_core else None),
                            "species_elevation": [f.elev_min, f.elev_max],
                            "species_elevation_effective": list(eff), "species_vertientes": f.vertientes},
                    "key_level": "inferred_data", "key_source": [cite, "elevation/slope rule"]})
+
+    # Co-occurrence. The key is a compatibility rule, not a gold list: roughly a third
+    # of the flora shares a region and an elevation band with any given species, so
+    # naming a plausible neighbour is easy and only the IMPOSSIBLE ones carry signal.
+    # See benchmark/cooccurrence.py for why, and for the three tiers a named species
+    # can fall into.
+    co_key = co_key_for(sp)
+    if co_key:
+        qs.append({"qtype": "co_occurrence",
+                   "question": CO_QUESTION.format(sp=sp),
+                   "key": co_key, "key_level": "inferred_data",
+                   "key_source": [cite, "regiones botánicas + rango altitudinal"]})
 
     qs.append({"qtype": "light",
                "question": f"¿{sp} prefiere crecer a pleno sol o en sombra?",
@@ -211,7 +283,8 @@ def for_species(cur, item: dict, rng) -> list[dict]:
                        "manual_habitat_text": f.distribution_paragraph.split(";")[0]},
                "key_level": "pending_expert", "key_source": ["expert labels (to collect)"]})
 
-    use_text = " ".join(m.group(0) for m in _USE_CUE.finditer(f"{f.discussion} {f.distribution_paragraph}"))
+    use_text = " ".join(m.group(0) for m in
+                        _EDIBLE_MED_CUE.finditer(f"{f.discussion} {f.distribution_paragraph}"))
     qs.append({"qtype": "outside_record",
                "question": f"¿{sp} es comestible o tiene algún uso medicinal?",
                "key": {"record_mentions_use": bool(use_text), "cues": use_text or None,

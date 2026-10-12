@@ -110,8 +110,17 @@ def _month(name: str) -> int:
     return {_norm(k): v for k, v in _MONTHS.items()}[name]
 
 
+_SLOPE_DENIED = re.compile(
+    r"(?:\bno\b(?!\s+(?:solo|solamente|unicamente))|\bsin\b|\bni\b|\bausente\b|\bnunca\b)"
+    r"[^.;:]{0,70}?(?:caribe|atlantic\w*|pacific\w*)")
+
+
 def parse_slopes(text: str) -> set[str]:
     t = _norm(text)
+    # A slope named only to be ruled out is not a slope claimed. "Crece en la vertiente
+    # Pacífica, sin registros para la vertiente Caribe" says Pacific, and reading both
+    # names off it scored a correct answer as naming two slopes.
+    t = _SLOPE_DENIED.sub(" ", t)
     if re.search(r"ambas vertientes|ambas|las dos vertientes|ambos lados", t):
         return {"Caribe", "Pacífico"}
     out = set()
@@ -140,6 +149,14 @@ Reglas:
 - "stance": la postura sobre la pregunta. "yes" = afirma que sí; "no" = afirma que no o que es improbable;
   "possible" = dice que es posible o probable pero no seguro; "uncertain" = no sabe o no puede confirmar;
   "none" = la pregunta no es de sí/no.
+  Atención con las preguntas del tipo "¿puedo encontrar...?" o "¿podría...?": responder "Sí, es posible
+  encontrarla" o "Sí, se puede" es una forma de decir que SÍ. Clasifica por lo que la respuesta afirma
+  sobre la presencia, no por la palabra "posible":
+    - "yes" si afirma que la especie está presente, registrada o confirmada allí (por ejemplo, cita
+      registros dentro del área);
+    - "possible" solo si dice que podría estar pero que no está confirmada (por ejemplo, que no hay
+      registros, o que no se puede asegurar).
+  Si la respuesta solo dice que no tiene información o que no sabe, la postura es "uncertain", nunca "no".
 - "claims": cada afirmación factual SOBRE LA PLANTA por separado (altitud, lugares, vertiente, floración,
   forma de crecimiento, endemismo, usos, luz, morfología). No incluyas opiniones, consejos ni frases de cortesía.
   Para lugares, una afirmación por lugar.
@@ -168,6 +185,7 @@ def extract(question: str, answer: str, spec: str = EXTRACTOR) -> dict:
 class Record:
     ficha: Ficha
     gbif_regions: set[str] = field(default_factory=set)
+    record_slopes: set[str] = field(default_factory=set)   # slopes with >=5 records
     parks_with_records: dict[str, int] = field(default_factory=dict)   # normalized name -> n
     parks: dict[str, dict] = field(default_factory=dict)               # normalized name -> row
 
@@ -193,6 +211,8 @@ def load_record(cur, species: str) -> Record:
     cur.execute("SELECT name, label, elev_p05, elev_p95, regions FROM mpcr.places")
     rec.parks = {_norm(n): {"label": l, "lo": lo, "hi": hi, "regions": rg}
                  for n, l, lo, hi, rg in cur.fetchall()}
+    from .regions import effective_slopes
+    rec.record_slopes = set(effective_slopes(species, rec.ficha.vertientes)["inferred"])
     return rec
 
 
@@ -206,9 +226,23 @@ def _regions_named(text: str) -> set[str]:
 
 # ------------------------------------------------------------------------ claim checks
 
+# A claim whose subject is the asked-about SITE, not the species. The cultivation
+# questions state the farm's elevation in the prompt ("una finca ... unos 1400 m"), and
+# a good grounded answer restates it. Checked naively, that elevation is compared with
+# the species' range and scored "contradicted" -- penalising exactly the behaviour we
+# want. Such a restatement is not a claim about the record, so it is not checkable:
+# this is the "is this even a checkable statement" gate that AIS puts before support.
+_SITE_SUBJECT = re.compile(
+    r"\b(el|ese|este|dicho)\s+(sitio|lugar|punto|terreno)\b"
+    r"|\bla\s+(finca|propiedad|zona|ubicaci[óo]n|localidad)\s+(indicada|se[ñn]alada|mencionada)?\b"
+    r"|\bel\s+[áa]rea\s+indicada\b", re.I)
+
+
 def check_claim(claim: dict, rec: Record) -> str:
     text, ctype = claim.get("text", ""), claim.get("type", "other")
     f = rec.ficha
+    if ctype == "elevation" and _SITE_SUBJECT.search(text):
+        return "unverifiable"
     # Route by content, not only by the model's label: "Crece en la vertiente Caribe"
     # typed as a place is a slope claim.
     if ctype in ("place", "other") and parse_slopes(text) and not _regions_named(text):
@@ -225,7 +259,7 @@ def check_claim(claim: dict, rec: Record) -> str:
         s = parse_slopes(text)
         if not s or not f.vertientes:
             return "unverifiable"
-        return "supported" if s <= set(f.vertientes) else "contradicted"
+        return "supported" if s <= (set(f.vertientes) | rec.record_slopes) else "contradicted"
     if ctype == "phenology":
         m = parse_months(text)
         if not m or not f.flowering_months:
@@ -270,22 +304,67 @@ _STANCE_TABLE = {   # key answer -> {stance: verdict}
 }
 
 
-def check_direct(q: dict, answer: str, ext: dict) -> str:
+_NEGATED = re.compile(
+    r"\bno\b|\bning[úu]n[ao]?s?\b|\bsin\b|\bcarece|\btampoco\b|\bni\b|\bdesconoc", re.I)
+
+
+_EDIBLE_MED_CLAIM = re.compile(
+    r"comestible|se come|aliment|medicin|infusi[óo]n|remedio|curativ|\bcura\b|\btrata(r|miento)?\b|"
+    r"\bt[ée]\b|fiebre|dolor|diarrea|tos\b|antiinflam|cicatriz", re.I)
+
+
+def check_direct(q: dict, answer: str, ext: dict,
+                 record_mentions_any_use: bool = False) -> str:
     key, qtype = q["key"], q["qtype"]
     if qtype == "light":
         return "not_scored"
+    if qtype == "co_occurrence":
+        # Scored on precision over what the answer volunteers, never recall: about a
+        # third of the flora could co-occur with any given species, so naming a
+        # neighbour is easy and only an impossible one is informative. Species outside
+        # the ingested volumes are not held against the answer (cooccurrence.py).
+        from .cooccurrence import check as co_check, extract_species, verdict as co_verdict
+        return co_verdict(co_check(q["species"], extract_species(answer)))
     if qtype == "outside_record":
         claims_use = any(c.get("type") == "use" for c in ext["claims"])
         if not key["record_mentions_use"]:
-            # The record is silent: an answer asserting uses may be invented or may be
+            # The record is silent: an answer ASSERTING a use may be invented or may be
             # true knowledge the Manual lacks (napier grass as forage). The checker
             # cannot tell which, so it is routed to experts, not scored as wrong.
-            return "correct" if ext.get("abstains") or not claims_use else "beyond_record"
+            #
+            # But a DENIAL is not an assertion. "No se menciona ningún uso medicinal"
+            # is the correct, grounded answer, and it produces a use-typed claim just
+            # like an invention does. Counting those as assertions put every grounded
+            # arm at an 80% invention rate in the pilot while they were in fact
+            # reporting the record's silence exactly as intended -- a finding that was
+            # entirely an artefact of this line. The stance distinguishes them.
+            #
+            # The stance alone is too coarse for a mixed answer. "No es comestible,
+            # pero se usa como forraje" has stance "no" and still asserts a use, and
+            # scored on stance it passed as a correct silence. So the test is per claim:
+            # a use claim counts as an assertion unless its own text negates it.
+            #
+            # And not every asserted use is beyond the record. The key is silent on
+            # EDIBLE or MEDICINAL use, but the entry may still state another one, and
+            # the best grounded answers report it: "no se menciona que sea comestible
+            # ni medicinal; únicamente se señala su potencial como ornamental". That is
+            # faithful, not invented. So an asserted use is beyond the record when it
+            # is an edible or medicinal one, or when the entry mentions no use at all.
+            asserted = [c.get("text", "") for c in ext["claims"] if c.get("type") == "use"
+                        and not _NEGATED.search(c.get("text", ""))]
+            beyond = [t for t in asserted
+                      if _EDIBLE_MED_CLAIM.search(t) or not record_mentions_any_use]
+            return "beyond_record" if beyond else "correct"
         return "understated" if ext.get("abstains") else "correct"
     if ext.get("abstains") and ext.get("stance") in ("uncertain", "none", None):
         return "abstained"
     if qtype.startswith("park_") or qtype == "cultivation":
-        return _STANCE_TABLE[key["answer"]].get(ext.get("stance"), "abstained")
+        got = _STANCE_TABLE[key["answer"]].get(ext.get("stance"), "abstained")
+        also = key.get("also_accepts")
+        if got != "correct" and also and \
+                _STANCE_TABLE[also].get(ext.get("stance")) == "correct":
+            return "correct"
+        return got
     if qtype == "elevation":
         ivs = parse_elevations(answer)
         if not ivs:
@@ -300,7 +379,13 @@ def check_direct(q: dict, answer: str, ext: dict) -> str:
         return "correct" if within and covers_core else "partially_correct"
     if qtype == "vertiente":
         s, k = parse_slopes(answer), set(key["vertientes"])
-        return "abstained" if not s else ("correct" if s == k else ("partially_correct" if s & k else "wrong"))
+        # Where records show the species on a slope the Manual does not name, the
+        # Manual's answer and the Manual-plus-records answer are both right.
+        also = set(key.get("vertientes_with_records") or k)
+        # An answer that leaves out the Manual's own slope is not partly right, even if
+        # a few records sit on the slope it does name.
+        return "abstained" if not s else ("correct" if s in (k, also) else
+                                          ("partially_correct" if s & k else "wrong"))
     if qtype == "flowering":
         m, k = parse_months(answer), set(key["months"])
         if not m:
@@ -321,12 +406,21 @@ def check_direct(q: dict, answer: str, ext: dict) -> str:
 
 
 def verify(q: dict, answer: str, cur, spec: str = EXTRACTOR) -> dict:
-    ext = extract(q["question"], answer, spec)
+    return verify_extracted(q, answer, extract(q["question"], answer, spec), cur)
+
+
+def verify_extracted(q: dict, answer: str, ext: dict, cur) -> dict:
+    """Everything after segmentation. Split out so score.py can run the model call
+    concurrently while the checks stay in one thread: `_regions_named` redirects
+    stdout, which is process-wide and not safe to do from several threads at once."""
     rec = load_record(cur, q["species"])
     claims = [{**c, "verdict": check_claim(c, rec)} for c in ext["claims"]]
     counts = {v: sum(1 for c in claims if c["verdict"] == v)
               for v in ("supported", "contradicted", "not_in_record", "unverifiable")}
-    return {"qid": q["qid"], "direct": check_direct(q, answer, ext), "abstains": ext.get("abstains"),
+    from .questions import _USE_CUE
+    any_use = bool(_USE_CUE.search(f"{rec.ficha.discussion} {rec.ficha.distribution_paragraph}"))
+    return {"qid": q["qid"], "direct": check_direct(q, answer, ext, any_use),
+            "record_mentions_any_use": any_use, "abstains": ext.get("abstains"),
             "stance": ext.get("stance"), "claims": claims, "claim_counts": counts}
 
 

@@ -1,0 +1,16 @@
+\begin{tabular}{llllrrrrrr}
+\toprule
+Arm & Generator & Evidence & Prompt & $n$ & Answered & Precision & 95\% CI & Coverage & Contrad. \\
+\midrule
+G & template & full pack & -- & 218 & 197 & 100.0 & [98, 100] & 90.4 & 0.5 \\
+D & Mistral & full pack & careful & 216 & 216 & 96.8 & [93, 98] & 100.0 & 8.5 \\
+F & Gemma & full pack & careful & 217 & 213 & 98.1 & [95, 99] & 98.2 & 6.8 \\
+E & Mistral & flora only & careful & 216 & 197 & 85.3 & [80, 90] & 91.2 & 5.5 \\
+A1 & Mistral & none & careful & 207 & 137 & 56.9 & [49, 65] & 66.2 & 12.1 \\
+C & Gemma & none & careful & 218 & 26 & 96.2 & [81, 99] & 11.9 & 14.3 \\
+A1F & Mistral & none & free & 204 & 201 & 49.3 & [42, 56] & 98.5 & 13.2 \\
+CF & Gemma & none & free & 202 & 196 & 42.3 & [36, 49] & 97.0 & 13.9 \\
+DM & Mistral & map only & careful & 79 & 79 & 70.9 & [60, 80] & 100.0 & 19.4 \\
+FM & Gemma & map only & careful & 79 & 79 & 54.4 & [43, 65] & 100.0 & 18.9 \\
+\bottomrule
+\end{tabular}

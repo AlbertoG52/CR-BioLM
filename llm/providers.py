@@ -41,6 +41,7 @@ class Provider:
     model: str           # provider-native model id
     api_key: str | None  # None when the provider needs no auth
     is_local: bool
+    pin: tuple[str, ...] = ()   # upstream providers to pin, in order; () = router's choice
 
     @property
     def spec(self) -> str:
@@ -52,16 +53,47 @@ class Provider:
             h["Authorization"] = f"Bearer {self.api_key}"
         return h
 
+    def routing(self) -> dict:
+        """Request-body fields that pin WHICH upstream serves the call.
+
+        OpenRouter is a router: the same model id can be served by different upstream
+        providers, at different quantizations, chosen per request with silent
+        fallbacks. "We used model X via OpenRouter" is therefore not a reproducible
+        specification, so an experiment pins the upstream and refuses fallbacks.
+        Pair this with recording the served-by value the response reports.
+        """
+        if self.name != "openrouter" or not self.pin:
+            return {}
+        return {"provider": {"order": list(self.pin), "allow_fallbacks": False}}
+
+
+def served_by(response_json: dict) -> str | None:
+    """Which upstream actually served the call, for the answer row.
+
+    OpenRouter reports it as a top-level ``provider``. Absent (e.g. Ollama) we return
+    None rather than guessing, so a missing value is visible in the data.
+    """
+    if not isinstance(response_json, dict):
+        return None
+    for key in ("provider", "provider_name"):
+        v = response_json.get(key)
+        if isinstance(v, str) and v:
+            return v
+    return None
+
 
 def _ollama_url() -> str:
     base = os.environ.get("OLLAMA_BASE_URL", _OLLAMA_DEFAULT).rstrip("/")
     return base if base.endswith("/chat/completions") else f"{base}/chat/completions"
 
 
-def resolve(spec: str, *, api_key: str | None = None) -> Provider:
+def resolve(spec: str, *, api_key: str | None = None,
+            pin: tuple[str, ...] | list[str] = ()) -> Provider:
     """Resolve a model spec to a Provider.
 
     ``api_key`` overrides the environment (used by callers that already hold a key).
+    ``pin`` names the upstream providers to use, in order, with fallbacks disabled --
+    required for an experimental run, ignored for Ollama.
     """
     spec = (spec or "").strip()
     if not spec:
@@ -86,7 +118,7 @@ def resolve(spec: str, *, api_key: str | None = None) -> Provider:
     return Provider(
         name="openrouter", url=_OPENROUTER_URL, model=model,
         api_key=api_key or os.environ.get("OPENROUTER_API_KEY"),
-        is_local=False,
+        is_local=False, pin=tuple(pin),
     )
 
 
