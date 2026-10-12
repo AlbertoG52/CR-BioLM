@@ -72,7 +72,7 @@ def resolve_taxon(species: str) -> tuple[int | None, str | None, bool]:
     is unreliable (fuzzy, lumps synonyms) — we key on the accepted backbone taxon.
     """
     try:
-        nb = gbif_species.name_backbone(scientificName=species)
+        nb = gbif_species.name_backbone(scientificName=species, checklistKey="d7dddbf4-2cf0-4f39-9b2a-bb099caae36c")
     except Exception:
         return None, None, False
     if "usage" not in nb:
