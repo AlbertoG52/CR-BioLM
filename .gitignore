@@ -2,6 +2,7 @@
 venv/
 env/
 .venv-app312/
+.venv/
 
 #tests
 probar_herramientas.py
