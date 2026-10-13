@@ -60,10 +60,19 @@ def _jsonl(path: Path) -> list[dict]:
     return out
 
 
-def collect(part: str, with_packs: bool = True) -> dict:
-    questions = {q["qid"]: q for q in _jsonl(DATA / f"questions_{part}.jsonl")}
-    answers = _jsonl(DATA / f"answers_{part}.jsonl")
-    verdicts = {(v["qid"], v["arm"]): v for v in _jsonl(DATA / f"verdicts_{part}.jsonl")}
+def collect(part: str, with_packs: bool = True, species: set | None = None) -> dict:
+    questions = {q["qid"]: q for q in _jsonl(DATA / f"questions_{part}.jsonl")
+                 if species is None or q["species"] in species}
+    # One answer and one verdict per (question, arm): the last row that is not an
+    # error. A retried call and a re-derived verdict both append, and showing the
+    # superseded row beside the current one would misreport the run.
+    kept: dict[tuple, dict] = {}
+    for a in _jsonl(DATA / f"answers_{part}.jsonl"):
+        if a["qid"] in questions and (not a.get("error") or (a["qid"], a["arm"]) not in kept):
+            kept[(a["qid"], a["arm"])] = a
+    answers = list(kept.values())
+    verdicts = {(v["qid"], v["arm"]): v for v in _jsonl(DATA / f"verdicts_{part}.jsonl")
+                if v["qid"] in questions and not v.get("error")}
     summ = analyze.summarize(list(verdicts.values()))
 
     # One pack per (species, qtype) at the full level: what the grounded arms saw.
@@ -316,12 +325,17 @@ def main() -> None:
     ap.add_argument("--no-packs", action="store_true",
                     help="skip evidence packs (faster, but the page loses the "
                          "side-by-side that catches checker defects)")
+    ap.add_argument("--species-file", default="",
+                    help="a JSON list of species; the report covers only those")
+    ap.add_argument("--tag", default="", help="suffix for the output file name")
     args = ap.parse_args()
 
-    data = collect(args.part, with_packs=not args.no_packs)
+    species = (set(json.loads(Path(args.species_file).read_text(encoding="utf-8")))
+               if args.species_file else None)
+    data = collect(args.part, with_packs=not args.no_packs, species=species)
     if not data["rows"]:
         raise SystemExit(f"no answers for part={args.part}")
-    out = DATA / f"report_{args.part}.html"
+    out = DATA / f"report_{args.part}{'_' + args.tag if args.tag else ''}.html"
     payload = json.dumps(data, ensure_ascii=False).replace("</script>", "<\\/script>")
     out.write_text(PAGE.replace("__DATA__", payload), encoding="utf-8")
     kb = out.stat().st_size // 1024
