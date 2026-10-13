@@ -168,11 +168,34 @@ def main() -> None:
     #
     # Scoring is NOT parallelised: it runs on one local GPU, and workers there would
     # contend for the same constrained resource rather than overlap.
+    # The router's reading of each question is a network call and nothing else, so it
+    # fans out like generation does. Done one at a time inside the loop below, 299 of
+    # them accounted for most of the three and a half hours tranche 1 spent preparing.
+    # Resolving what the router extracted still happens serially, against the database.
+    proposals: dict[str, object] = {}
+    routed_qs = [q for q, a in todo if A.ARMS[a].routed] if not args.dry_run else []
+    if routed_qs:
+        def _propose(q):
+            try:
+                return q["qid"], router.propose(q["question"])
+            except Exception as e:
+                return q["qid"], e
+        with cf.ThreadPoolExecutor(max_workers=args.workers) as pool:
+            for n, (qid, got) in enumerate(pool.map(_propose, routed_qs), 1):
+                proposals[qid] = got
+                if n % 50 == 0 or n == len(routed_qs):
+                    print(f"  routed {n}/{len(routed_qs)}", flush=True)
+
     conn = pg_store.connect()
     jobs: list[dict] = []
     try:
         with conn.cursor() as cur:
             for i, (q, arm_name) in enumerate(todo, 1):
+                if i % 200 == 0:
+                    # Preparation is serial and can run for a long while before the
+                    # first call; without this the log is silent and a slow run looks
+                    # like a stuck one.
+                    print(f"  preparing {i}/{len(todo)}", flush=True)
                 arm = A.ARMS[arm_name]
                 if arm.evidence == "map" and q["qtype"] not in A.MAP_QTYPES:
                     continue        # a picture carries nothing this key tests
@@ -186,7 +209,10 @@ def main() -> None:
                     # have handed over; the gold values are recorded beside it so the
                     # routing error is auditable per row.
                     try:
-                        r = router.route(cur, q["question"])
+                        got = proposals[q["qid"]]
+                        if isinstance(got, Exception):
+                            raise got
+                        r = {**router.resolve(cur, got), "proposal": got}
                     except Exception as e:
                         # A router call that failed is not a question the router
                         # declined. It becomes an error row, which resume retries.
@@ -223,7 +249,7 @@ def main() -> None:
                         q["species"], q["key"].get("place_code"),
                         elev_min=pk.facts.get("elev_min"),
                         elev_max=pk.facts.get("elev_max"),
-                        highlight_regions=regs)
+                        highlight_regions=regs, reuse=True)
                     img_b64 = base64.b64encode(Path(mp).read_bytes()).decode()
                 elif arm.evidence:
                     pack = build_pack(cur, q["species"], q["qtype"], level=arm.evidence,

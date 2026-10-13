@@ -108,15 +108,58 @@ def _elevation_band(regions: gpd.GeoDataFrame, lo: float, hi: float):
         return inside, (left, right, bottom, top)
 
 
+def _snapshot_points(species: str) -> gpd.GeoDataFrame:
+    """The species' records from the frozen download, the same ones the text pack and
+    the keys are built from.
+
+    The map used to draw `gbif_map.get_points`, a live lookup with its own, stricter
+    cleaning, and so showed fewer records than the evidence it was being compared with:
+    under half of them for 7 of the 27 species of tranche 1 and 13 of the 51 of tranche
+    2 (Chusquea tomentosa, 38 drawn of 84), and none of 9 for Begonia nelumbonifolia. A
+    park keyed "sí" on records the picture did not carry was asking the map arm to see
+    what was not drawn. Found by checking the maps ahead of tranche 2.
+    """
+    from mpcr_rag.store import pg_store
+    conn = pg_store.connect()
+    try:
+        with conn.cursor() as cur:
+            # By taxon key, not by name: the download files each record under GBIF's
+            # accepted name, and for 881 of the 6,664 catalogue species that have
+            # records that is a different name from the Manual's (Calathea
+            # donnell-smithii is Goeppertia there). Asked for by name, those species
+            # come back with no records at all.
+            cur.execute("""SELECT o.lon, o.lat FROM mpcr.occurrences o
+                           JOIN mpcr.species_evidence e ON e.taxon_key = o.species_key
+                           WHERE e.species = %s AND o.lon IS NOT NULL
+                             AND o.lat IS NOT NULL""", (species,))
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+    return gpd.GeoDataFrame(
+        geometry=gpd.points_from_xy([r[0] for r in rows], [r[1] for r in rows]), crs=4326)
+
+
 def render(species: str, place_code: str | list[str] | None = None, *,
            elev_min: float | None = None, elev_max: float | None = None,
            highlight_regions: list[str] | None = None,
-           out_path: Path | None = None) -> tuple[Path, dict]:
+           out_path: Path | None = None, reuse: bool = False) -> tuple[Path, dict]:
     """Render the stimulus. Returns the path and what the image actually shows, so a
-    run can record whether the park and the band made it onto the picture."""
+    run can record whether the park and the band made it onto the picture.
+
+    With ``reuse`` an image already on disk is returned as it is, together with the
+    record of what it shows that was saved beside it. Drawing is deterministic, so this
+    changes nothing a model sees; it lets the maps be drawn ahead of a run, in parallel,
+    and looked over before any call is paid for (benchmark/prerender.py).
+    """
     zone = species_zone(species)
     if highlight_regions is None and zone['regions']:
         highlight_regions = zone['regions']
+    _codes = [place_code] if isinstance(place_code, str) else list(place_code or [])
+    _tag = ("-".join(_codes) if _codes else "nopark") + ("__reg" if highlight_regions else "")
+    _cached = out_path or (MAPS / f"{species.replace(' ', '_')}__{_tag}.png")
+    _side = Path(str(_cached) + ".json")
+    if reuse and Path(_cached).exists() and _side.exists():
+        return Path(_cached), json.loads(_side.read_text(encoding="utf-8"))
     if elev_min is None:
         elev_min, elev_max = zone['elev_min'], zone['elev_max']
     inferred = inferred_regions(species, zone['regions'])
@@ -125,7 +168,7 @@ def render(species: str, place_code: str | list[str] | None = None, *,
     zone_parks = parks_in_zone(sorted(set(zone['regions']) | set(inferred)),
                                zone['elev_min'], zone['elev_max'])
     regions = load_regiones_botanicas().to_crs(4326)
-    pts = get_points(species)
+    pts = _snapshot_points(species)
     codes = ([place_code] if isinstance(place_code, str)
              else list(place_code or []))
     shown = {"species": species, "place_code": codes,
@@ -307,6 +350,8 @@ def render(species: str, place_code: str | list[str] | None = None, *,
     out_path = out_path or (MAPS / f"{species.replace(' ', '_')}__{tag}.png")
     fig.savefig(out_path, facecolor=BG, bbox_inches="tight")
     plt.close(fig)
+    Path(str(out_path) + ".json").write_text(
+        json.dumps(shown, ensure_ascii=False, default=str), encoding="utf-8")
     return out_path, shown
 
 
