@@ -20,6 +20,7 @@ from pathlib import Path
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
+import requests
 from pygbif import occurrences, species as gbif_species
 
 import config as cr_config                       # repo-root config (DEM, shapefiles)
@@ -73,6 +74,8 @@ def resolve_taxon(species: str) -> tuple[int | None, str | None, bool]:
     """
     try:
         nb = gbif_species.name_backbone(scientificName=species, checklistKey="d7dddbf4-2cf0-4f39-9b2a-bb099caae36c")
+    except requests.RequestException:
+        raise  # GBIF caído o sin red: que falle la herramienta y no se cachee "0 puntos"
     except Exception:
         return None, None, False
     if "usage" not in nb:
@@ -90,8 +93,9 @@ def resolve_taxon(species: str) -> tuple[int | None, str | None, bool]:
 def _fetch_clean(species: str) -> gpd.GeoDataFrame:
     """CR occurrences for a species via accepted taxonKey, coordinate-cleaned.
 
-    Filters: GBIF hasGeospatialIssue=False; drops zero/near-zero coords, lat/lon
-    swaps (point outside CR but swap inside), and records coarser than ~10 km.
+    Filters: GBIF occurrenceStatus=PRESENT and hasGeospatialIssue=False (absence
+    records are excluded); drops zero/near-zero coords, lat/lon swaps (point
+    outside CR but swap inside), and records coarser than ~10 km.
     """
     key, _accepted, _syn = resolve_taxon(species)
     cols = ["lon", "lat", "geometry"]
@@ -101,7 +105,8 @@ def _fetch_clean(species: str) -> gpd.GeoDataFrame:
     recs: list[dict] = []
     for offset in range(0, 900, 300):                       # cap ~900 records
         r = occurrences.search(taxonKey=key, country="CR", hasCoordinate=True,
-                               hasGeospatialIssue=False, limit=300, offset=offset)
+                               hasGeospatialIssue=False, occurrenceStatus="PRESENT", 
+                               limit=300, offset=offset)
         recs.extend(r.get("results", []))
         if offset + 300 >= r.get("count", 0):
             break

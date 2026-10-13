@@ -354,6 +354,34 @@ def search(query_text: str, *, top_k: int = 10, section: str = "distribution",
         if own:
             conn.close()
 
+def passages(species: str, query_text: str, *, top_k: int = 1,
+             section: str | None = None, conn=None) -> list[dict]:
+    """The chunks of ONE species ranked by similarity to ``query_text``.
+
+    ``search`` ranks species; this ranks the text of a species already identified,
+    to pick the passage that answers a question: the distribution paragraph, or a
+    description window (morphology + discussion). ``section=None`` searches both.
+    Hit dicts: ``species``, ``volume``, ``pages``, ``section``, ``ordinal``, ``text``,
+    ``score`` (cosine similarity)."""
+    from . import embeddings
+    q = _vec(embeddings.embed_query(query_text))
+    vector_id = species.strip().replace(" ", "_")
+    sections = [section] if section else list(SECTIONS)
+    own = conn is None
+    conn = conn or connect()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT f.species, f.volume, f.pages, c.section, c.ordinal, c.text,
+                       1 - (c.embedding <=> %s::vector) AS score
+                FROM mpcr.ficha_chunks c JOIN mpcr.fichas f USING (vector_id)
+                WHERE c.vector_id = %s AND c.section = ANY(%s)
+                ORDER BY c.embedding <=> %s::vector
+                LIMIT %s""", [q, vector_id, sections, q, top_k])
+            return [dict(r) for r in cur.fetchall()]
+    finally:
+        if own:
+            conn.close()
 
 def status() -> dict:
     info = _running()
