@@ -333,9 +333,9 @@ def get_occurrence_points(species: str, limit: int = 500) -> dict:
     Cost: L1 — same disk cache as get_occurrences (the first call fetches from
     GBIF, later calls are instant). No LLM.
 
-    The points are already cleaned by gbif_map: hasCoordinate=true,
-    hasGeospatialIssue=false, no (0,0), swapped lat/lon fixed, uncertainty
-    <= ~10 km. elev_m comes from the DEM at the point, not from the GBIF record.
+    The points are already cleaned by gbif_map: occurrenceStatus=PRESENT,
+    hasCoordinate=true, hasGeospatialIssue=false, no (0,0), swapped lat/lon fixed,
+    uncertainty <= ~10 km. elev_m comes from the DEM at the point, not from the GBIF record.
 
     Args:
         species: scientific name e.g. "Quercus costaricensis"
@@ -344,7 +344,7 @@ def get_occurrence_points(species: str, limit: int = 500) -> dict:
     Returns a provenance envelope whose value is:
       {n, truncated, points: [{lat, lon, elev_m, region, vertiente}]}
     """
-    citation = "GBIF occurrence API — Costa Rica (hasCoordinate=true, hasGeospatialIssue=false)"
+    citation = "GBIF occurrence API — Costa Rica (occurrenceStatus=PRESENT, hasCoordinate=true, hasGeospatialIssue=false)"
     pts = gbif_map.get_points(species)
     if pts.empty:
         return _envelope(
@@ -503,6 +503,50 @@ def search_by_description(query_text: str, family: Optional[str] = None,
         value, source="MPCR", confidence="estimated",
         citation="Manual de Plantas de Costa Rica — morphology/discussion text, e5 embeddings",
         caveat="" if hits else "No species matched. Loosen family/habit filters.",
+    )
+
+@server.tool()
+def get_relevant_passage(species: str, question: str, top_k: int = 1) -> dict:
+    """The Manual passage of ONE species that best answers a question.
+
+    Cost: L1 — local e5 embeddings over pgvector, no API key. Requires
+    MPCR_VECTOR_BACKEND=pgvector and a synced store (build_catalog --pgvector).
+
+    Unlike semantic_search and search_by_description, which rank SPECIES, this ranks
+    the text of a species already identified: its distribution paragraph and its
+    description windows (morphology + discussion). Use it to quote the passage that
+    answers e.g. "¿de qué color son las flores?" instead of the distribution text.
+
+    Args:
+        species: scientific name e.g. "Quercus costaricensis"
+        question: the user's question, in Spanish or English
+        top_k: number of passages returned, best first (default 1)
+
+    Returns a provenance envelope whose value is:
+      {species, passages: [{section, ordinal, text, score}]}
+    or value None (confidence "insufficient") when the species has no indexed text.
+    """
+    if config.VECTOR_BACKEND != "pgvector":
+        return _envelope(None, source="MPCR", confidence="insufficient",
+                         caveat="get_relevant_passage requires MPCR_VECTOR_BACKEND=pgvector.")
+    from mpcr_rag.store import pg_store
+    hits = pg_store.passages(species, question, top_k=top_k)
+    if not hits:
+        return _envelope(
+            None, source="MPCR", confidence="insufficient",
+            caveat=f"No indexed text for '{species}'. Check spelling or sync the store "
+                   "(build_catalog --pgvector).",
+        )
+    best = hits[0]
+    value = {
+        "species": best["species"],
+        "passages": [{"section": h["section"], "ordinal": h["ordinal"], "text": h["text"],
+                      "score": round(float(h["score"]), 4)} for h in hits],
+    }
+    return _envelope(
+        value, source="MPCR", confidence="estimated",
+        citation=f"Manual de Plantas de Costa Rica, Tomo {best['volume']}, p. {best['pages']} "
+                 "— e5 embeddings",
     )
 
 
