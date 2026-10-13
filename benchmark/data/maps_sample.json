@@ -1,0 +1,2421 @@
+{
+ "created": "2026-10-12",
+ "seed": 20261012,
+ "min_records": 30,
+ "per_stratum": 100,
+ "frame_size": 3872,
+ "frame_families": 185,
+ "strata": {
+  "G1": 1291,
+  "G2": 1290,
+  "G3": 1291
+ },
+ "global_count_tertile_edges": [
+  306.33333333333326,
+  1576.6666666666665
+ ],
+ "excluded_already_used": 117,
+ "rule": "tertiles of worldwide GBIF records; within each, ordered by family then name and every k-th taken from a random start",
+ "sample": [
+  {
+   "species": "Dicliptera skutchii",
+   "family": "Acanthaceae",
+   "taxon_key": 5575854,
+   "n_records": 34,
+   "n_global": 46,
+   "stratum": "G1"
+  },
+  {
+   "species": "Justicia trichotoma",
+   "family": "Acanthaceae",
+   "taxon_key": 3779822,
+   "n_records": 118,
+   "n_global": 185,
+   "stratum": "G1"
+  },
+  {
+   "species": "Stenostephanus citrinus",
+   "family": "Acanthaceae",
+   "taxon_key": 10814410,
+   "n_records": 48,
+   "n_global": 59,
+   "stratum": "G1"
+  },
+  {
+   "species": "Annona pittieri",
+   "family": "Annonaceae",
+   "taxon_key": 5407115,
+   "n_records": 167,
+   "n_global": 267,
+   "stratum": "G1"
+  },
+  {
+   "species": "Guatteria pudica",
+   "family": "Annonaceae",
+   "taxon_key": 3155854,
+   "n_records": 93,
+   "n_global": 114,
+   "stratum": "G1"
+  },
+  {
+   "species": "Unonopsis storkii",
+   "family": "Annonaceae",
+   "taxon_key": 3157813,
+   "n_records": 72,
+   "n_global": 129,
+   "stratum": "G1"
+  },
+  {
+   "species": "Gonolobus heterophyllus",
+   "family": "Apocynaceae",
+   "taxon_key": 7510164,
+   "n_records": 75,
+   "n_global": 151,
+   "stratum": "G1"
+  },
+  {
+   "species": "Rauvolfia aphlebia",
+   "family": "Apocynaceae",
+   "taxon_key": 3618470,
+   "n_records": 186,
+   "n_global": 286,
+   "stratum": "G1"
+  },
+  {
+   "species": "Anthurium austin-smithii",
+   "family": "Araceae",
+   "taxon_key": 2872734,
+   "n_records": 88,
+   "n_global": 111,
+   "stratum": "G1"
+  },
+  {
+   "species": "Anthurium pageanum",
+   "family": "Araceae",
+   "taxon_key": 2872408,
+   "n_records": 56,
+   "n_global": 150,
+   "stratum": "G1"
+  },
+  {
+   "species": "Dieffenbachia hammelii",
+   "family": "Araceae",
+   "taxon_key": 2869446,
+   "n_records": 66,
+   "n_global": 71,
+   "stratum": "G1"
+  },
+  {
+   "species": "Monstera punctulata",
+   "family": "Araceae",
+   "taxon_key": 2868198,
+   "n_records": 51,
+   "n_global": 224,
+   "stratum": "G1"
+  },
+  {
+   "species": "Philodendron herbaceum",
+   "family": "Araceae",
+   "taxon_key": 2870877,
+   "n_records": 66,
+   "n_global": 122,
+   "stratum": "G1"
+  },
+  {
+   "species": "Stenospermation marantifolium",
+   "family": "Araceae",
+   "taxon_key": 2870210,
+   "n_records": 127,
+   "n_global": 248,
+   "stratum": "G1"
+  },
+  {
+   "species": "Dendropanax latilobus",
+   "family": "Araliaceae",
+   "taxon_key": 3035162,
+   "n_records": 45,
+   "n_global": 75,
+   "stratum": "G1"
+  },
+  {
+   "species": "Schefflera robusta",
+   "family": "Araliaceae",
+   "taxon_key": 3038927,
+   "n_records": 146,
+   "n_global": 246,
+   "stratum": "G1"
+  },
+  {
+   "species": "Chamaedorea hodelii",
+   "family": "Arecaceae",
+   "taxon_key": 2734495,
+   "n_records": 96,
+   "n_global": 103,
+   "stratum": "G1"
+  },
+  {
+   "species": "Cryosophila grayumii",
+   "family": "Arecaceae",
+   "taxon_key": 2731932,
+   "n_records": 45,
+   "n_global": 63,
+   "stratum": "G1"
+  },
+  {
+   "species": "Hagenbachia panamensis",
+   "family": "Asparagaceae",
+   "taxon_key": 2774316,
+   "n_records": 54,
+   "n_global": 120,
+   "stratum": "G1"
+  },
+  {
+   "species": "Bartlettina platyphylla",
+   "family": "Asteraceae",
+   "taxon_key": 3134401,
+   "n_records": 30,
+   "n_global": 156,
+   "stratum": "G1"
+  },
+  {
+   "species": "Ichthyothere scandens",
+   "family": "Asteraceae",
+   "taxon_key": 3125466,
+   "n_records": 35,
+   "n_global": 239,
+   "stratum": "G1"
+  },
+  {
+   "species": "Munnozia wilburii",
+   "family": "Asteraceae",
+   "taxon_key": 3099394,
+   "n_records": 48,
+   "n_global": 89,
+   "stratum": "G1"
+  },
+  {
+   "species": "Pseudognaphalium rhodarum",
+   "family": "Asteraceae",
+   "taxon_key": 3100994,
+   "n_records": 76,
+   "n_global": 107,
+   "stratum": "G1"
+  },
+  {
+   "species": "Westoniella kohkemperi",
+   "family": "Asteraceae",
+   "taxon_key": 3132430,
+   "n_records": 41,
+   "n_global": 53,
+   "stratum": "G1"
+  },
+  {
+   "species": "Begonia ignea",
+   "family": "Begoniaceae",
+   "taxon_key": 7303507,
+   "n_records": 79,
+   "n_global": 115,
+   "stratum": "G1"
+  },
+  {
+   "species": "Anemopaegma puberulum",
+   "family": "Bignoniaceae",
+   "taxon_key": 4092427,
+   "n_records": 34,
+   "n_global": 285,
+   "stratum": "G1"
+  },
+  {
+   "species": "Guzmania patula",
+   "family": "Bromeliaceae",
+   "taxon_key": 2698901,
+   "n_records": 39,
+   "n_global": 293,
+   "stratum": "G1"
+  },
+  {
+   "species": "Pitcairnia wendlandii",
+   "family": "Bromeliaceae",
+   "taxon_key": 5288470,
+   "n_records": 63,
+   "n_global": 148,
+   "stratum": "G1"
+  },
+  {
+   "species": "Werauhia kathyae",
+   "family": "Bromeliaceae",
+   "taxon_key": 2699867,
+   "n_records": 39,
+   "n_global": 48,
+   "stratum": "G1"
+  },
+  {
+   "species": "Brunellia standleyana",
+   "family": "Brunelliaceae",
+   "taxon_key": 5643531,
+   "n_records": 49,
+   "n_global": 83,
+   "stratum": "G1"
+  },
+  {
+   "species": "Pseudorhipsalis himantoclada",
+   "family": "Cactaceae",
+   "taxon_key": 3955810,
+   "n_records": 99,
+   "n_global": 133,
+   "stratum": "G1"
+  },
+  {
+   "species": "Centropogon valerii",
+   "family": "Campanulaceae",
+   "taxon_key": 5412514,
+   "n_records": 192,
+   "n_global": 287,
+   "stratum": "G1"
+  },
+  {
+   "species": "Haydenoxylon haberianum",
+   "family": "Celastraceae",
+   "taxon_key": 8397006,
+   "n_records": 49,
+   "n_global": 89,
+   "stratum": "G1"
+  },
+  {
+   "species": "Moquilea belloi",
+   "family": "Chrysobalanaceae",
+   "taxon_key": 10803249,
+   "n_records": 48,
+   "n_global": 58,
+   "stratum": "G1"
+  },
+  {
+   "species": "Clusia cooperi",
+   "family": "Clusiaceae",
+   "taxon_key": 5555567,
+   "n_records": 99,
+   "n_global": 200,
+   "stratum": "G1"
+  },
+  {
+   "species": "Tradescantia schippii",
+   "family": "Commelinaceae",
+   "taxon_key": 2765102,
+   "n_records": 73,
+   "n_global": 179,
+   "stratum": "G1"
+  },
+  {
+   "species": "Costus curvibracteatus",
+   "family": "Costaceae",
+   "taxon_key": 2756884,
+   "n_records": 114,
+   "n_global": 302,
+   "stratum": "G1"
+  },
+  {
+   "species": "Cyclanthera cogniauxii",
+   "family": "Cucurbitaceae",
+   "taxon_key": 3625729,
+   "n_records": 77,
+   "n_global": 90,
+   "stratum": "G1"
+  },
+  {
+   "species": "Asplundia ferruginea",
+   "family": "Cyclanthaceae",
+   "taxon_key": 2861051,
+   "n_records": 60,
+   "n_global": 77,
+   "stratum": "G1"
+  },
+  {
+   "species": "Dicranopygium umbrophilum",
+   "family": "Cyclanthaceae",
+   "taxon_key": 2861147,
+   "n_records": 136,
+   "n_global": 268,
+   "stratum": "G1"
+  },
+  {
+   "species": "Dichapetalum morenoi",
+   "family": "Dichapetalaceae",
+   "taxon_key": 4195813,
+   "n_records": 102,
+   "n_global": 126,
+   "stratum": "G1"
+  },
+  {
+   "species": "Sloanea brachytepala",
+   "family": "Elaeocarpaceae",
+   "taxon_key": 5651034,
+   "n_records": 45,
+   "n_global": 183,
+   "stratum": "G1"
+  },
+  {
+   "species": "Satyria meiantha",
+   "family": "Ericaceae",
+   "taxon_key": 4172389,
+   "n_records": 141,
+   "n_global": 248,
+   "stratum": "G1"
+  },
+  {
+   "species": "Croton corinthius",
+   "family": "Euphorbiaceae",
+   "taxon_key": 3059876,
+   "n_records": 30,
+   "n_global": 35,
+   "stratum": "G1"
+  },
+  {
+   "species": "Jatropha costaricensis",
+   "family": "Euphorbiaceae",
+   "taxon_key": 3072745,
+   "n_records": 57,
+   "n_global": 93,
+   "stratum": "G1"
+  },
+  {
+   "species": "Calliandra bijuga",
+   "family": "Fabaceae",
+   "taxon_key": 2982296,
+   "n_records": 99,
+   "n_global": 265,
+   "stratum": "G1"
+  },
+  {
+   "species": "Erythrina gibbosa",
+   "family": "Fabaceae",
+   "taxon_key": 5349696,
+   "n_records": 138,
+   "n_global": 264,
+   "stratum": "G1"
+  },
+  {
+   "species": "Inga golfodulcensis",
+   "family": "Fabaceae",
+   "taxon_key": 5357897,
+   "n_records": 37,
+   "n_global": 45,
+   "stratum": "G1"
+  },
+  {
+   "species": "Lonchocarpus costaricensis",
+   "family": "Fabaceae",
+   "taxon_key": 2969071,
+   "n_records": 77,
+   "n_global": 113,
+   "stratum": "G1"
+  },
+  {
+   "species": "Mimosa tarda",
+   "family": "Fabaceae",
+   "taxon_key": 3795721,
+   "n_records": 35,
+   "n_global": 284,
+   "stratum": "G1"
+  },
+  {
+   "species": "Senna tonduzii",
+   "family": "Fabaceae",
+   "taxon_key": 2957021,
+   "n_records": 33,
+   "n_global": 182,
+   "stratum": "G1"
+  },
+  {
+   "species": "Halenia aquilegiella",
+   "family": "Gentianaceae",
+   "taxon_key": 5596297,
+   "n_records": 109,
+   "n_global": 151,
+   "stratum": "G1"
+  },
+  {
+   "species": "Codonanthe macradenia",
+   "family": "Gesneriaceae",
+   "taxon_key": 10710158,
+   "n_records": 146,
+   "n_global": 306,
+   "stratum": "G1"
+  },
+  {
+   "species": "Columnea raymondii",
+   "family": "Gesneriaceae",
+   "taxon_key": 5588935,
+   "n_records": 54,
+   "n_global": 89,
+   "stratum": "G1"
+  },
+  {
+   "species": "Monopyle maxonii",
+   "family": "Gesneriaceae",
+   "taxon_key": 3822062,
+   "n_records": 133,
+   "n_global": 213,
+   "stratum": "G1"
+  },
+  {
+   "species": "Molinadendron guatemalense",
+   "family": "Hamamelidaceae",
+   "taxon_key": 3702593,
+   "n_records": 81,
+   "n_global": 304,
+   "stratum": "G1"
+  },
+  {
+   "species": "Tournefortia johnstonii",
+   "family": "Heliotropiaceae",
+   "taxon_key": 4065279,
+   "n_records": 78,
+   "n_global": 169,
+   "stratum": "G1"
+  },
+  {
+   "species": "Alfaroa manningii",
+   "family": "Juglandaceae",
+   "taxon_key": 4205554,
+   "n_records": 43,
+   "n_global": 71,
+   "stratum": "G1"
+  },
+  {
+   "species": "Beilschmiedia tilaranensis",
+   "family": "Lauraceae",
+   "taxon_key": 4182861,
+   "n_records": 36,
+   "n_global": 48,
+   "stratum": "G1"
+  },
+  {
+   "species": "Ocotea austinii",
+   "family": "Lauraceae",
+   "taxon_key": 4177360,
+   "n_records": 152,
+   "n_global": 235,
+   "stratum": "G1"
+  },
+  {
+   "species": "Ocotea pentagona",
+   "family": "Lauraceae",
+   "taxon_key": 4176947,
+   "n_records": 172,
+   "n_global": 187,
+   "stratum": "G1"
+  },
+  {
+   "species": "Persea veraguasensis",
+   "family": "Lauraceae",
+   "taxon_key": 4177999,
+   "n_records": 63,
+   "n_global": 158,
+   "stratum": "G1"
+  },
+  {
+   "species": "Lecythis ampla",
+   "family": "Lecythidaceae",
+   "taxon_key": 3082427,
+   "n_records": 95,
+   "n_global": 298,
+   "stratum": "G1"
+  },
+  {
+   "species": "Talauma gloriensis",
+   "family": "Magnoliaceae",
+   "taxon_key": 3153408,
+   "n_records": 227,
+   "n_global": 281,
+   "stratum": "G1"
+  },
+  {
+   "species": "Jubelina wilburii",
+   "family": "Malpighiaceae",
+   "taxon_key": 8010124,
+   "n_records": 49,
+   "n_global": 107,
+   "stratum": "G1"
+  },
+  {
+   "species": "Pavonia penduliflora",
+   "family": "Malvaceae",
+   "taxon_key": 5618529,
+   "n_records": 58,
+   "n_global": 113,
+   "stratum": "G1"
+  },
+  {
+   "species": "Calathea foliosa",
+   "family": "Marantaceae",
+   "taxon_key": 9469337,
+   "n_records": 59,
+   "n_global": 81,
+   "stratum": "G1"
+  },
+  {
+   "species": "Calathea robiniae",
+   "family": "Marantaceae",
+   "taxon_key": 9433635,
+   "n_records": 38,
+   "n_global": 42,
+   "stratum": "G1"
+  },
+  {
+   "species": "Marcgravia pittieri",
+   "family": "Marcgraviaceae",
+   "taxon_key": 5614576,
+   "n_records": 98,
+   "n_global": 172,
+   "stratum": "G1"
+  },
+  {
+   "species": "Axinaea costaricensis",
+   "family": "Melastomataceae",
+   "taxon_key": 5601145,
+   "n_records": 123,
+   "n_global": 261,
+   "stratum": "G1"
+  },
+  {
+   "species": "Clidemia clandestina",
+   "family": "Melastomataceae",
+   "taxon_key": 10815271,
+   "n_records": 45,
+   "n_global": 96,
+   "stratum": "G1"
+  },
+  {
+   "species": "Conostegia brenesii",
+   "family": "Melastomataceae",
+   "taxon_key": 10761798,
+   "n_records": 35,
+   "n_global": 61,
+   "stratum": "G1"
+  },
+  {
+   "species": "Miconia brevitheca",
+   "family": "Melastomataceae",
+   "taxon_key": 3858219,
+   "n_records": 40,
+   "n_global": 294,
+   "stratum": "G1"
+  },
+  {
+   "species": "Miconia oraria",
+   "family": "Melastomataceae",
+   "taxon_key": 3859221,
+   "n_records": 60,
+   "n_global": 190,
+   "stratum": "G1"
+  },
+  {
+   "species": "Mouriri exilis",
+   "family": "Melastomataceae",
+   "taxon_key": 3870670,
+   "n_records": 60,
+   "n_global": 256,
+   "stratum": "G1"
+  },
+  {
+   "species": "Guarea subsessilifolia",
+   "family": "Meliaceae",
+   "taxon_key": 3850011,
+   "n_records": 76,
+   "n_global": 77,
+   "stratum": "G1"
+  },
+  {
+   "species": "Naucleopsis capirensis",
+   "family": "Moraceae",
+   "taxon_key": 3767263,
+   "n_records": 127,
+   "n_global": 214,
+   "stratum": "G1"
+  },
+  {
+   "species": "Eugenia monteverdensis",
+   "family": "Myrtaceae",
+   "taxon_key": 5417360,
+   "n_records": 53,
+   "n_global": 64,
+   "stratum": "G1"
+  },
+  {
+   "species": "Neea delicatula",
+   "family": "Nyctaginaceae",
+   "taxon_key": 3700097,
+   "n_records": 56,
+   "n_global": 159,
+   "stratum": "G1"
+  },
+  {
+   "species": "Agonandra macrocarpa",
+   "family": "Opiliaceae",
+   "taxon_key": 3658839,
+   "n_records": 88,
+   "n_global": 222,
+   "stratum": "G1"
+  },
+  {
+   "species": "Cryptocentrum calcaratum",
+   "family": "Orchidaceae",
+   "taxon_key": 9539534,
+   "n_records": 32,
+   "n_global": 90,
+   "stratum": "G1"
+  },
+  {
+   "species": "Elleanthus stolonifer",
+   "family": "Orchidaceae",
+   "taxon_key": 2839302,
+   "n_records": 41,
+   "n_global": 73,
+   "stratum": "G1"
+  },
+  {
+   "species": "Lepanthes wendlandii",
+   "family": "Orchidaceae",
+   "taxon_key": 2852073,
+   "n_records": 125,
+   "n_global": 172,
+   "stratum": "G1"
+  },
+  {
+   "species": "Maxillaria angustisegmenta",
+   "family": "Orchidaceae",
+   "taxon_key": 5318373,
+   "n_records": 62,
+   "n_global": 112,
+   "stratum": "G1"
+  },
+  {
+   "species": "Maxillaria oreocharis",
+   "family": "Orchidaceae",
+   "taxon_key": 5318051,
+   "n_records": 33,
+   "n_global": 87,
+   "stratum": "G1"
+  },
+  {
+   "species": "Oerstedella pansamalae",
+   "family": "Orchidaceae",
+   "taxon_key": 5321075,
+   "n_records": 35,
+   "n_global": 88,
+   "stratum": "G1"
+  },
+  {
+   "species": "Ornithocephalus bicornis",
+   "family": "Orchidaceae",
+   "taxon_key": 5321656,
+   "n_records": 34,
+   "n_global": 279,
+   "stratum": "G1"
+  },
+  {
+   "species": "Pleurothallis guanacastensis",
+   "family": "Orchidaceae",
+   "taxon_key": 2835478,
+   "n_records": 32,
+   "n_global": 75,
+   "stratum": "G1"
+  },
+  {
+   "species": "Prosthechea abbreviata",
+   "family": "Orchidaceae",
+   "taxon_key": 2794127,
+   "n_records": 86,
+   "n_global": 286,
+   "stratum": "G1"
+  },
+  {
+   "species": "Scaphyglottis mesocopis",
+   "family": "Orchidaceae",
+   "taxon_key": 2847079,
+   "n_records": 74,
+   "n_global": 173,
+   "stratum": "G1"
+  },
+  {
+   "species": "Telipogon costaricensis",
+   "family": "Orchidaceae",
+   "taxon_key": 2790944,
+   "n_records": 97,
+   "n_global": 131,
+   "stratum": "G1"
+  },
+  {
+   "species": "Passiflora standleyi",
+   "family": "Passifloraceae",
+   "taxon_key": 3588324,
+   "n_records": 50,
+   "n_global": 279,
+   "stratum": "G1"
+  },
+  {
+   "species": "Agrostis subpatens",
+   "family": "Poaceae",
+   "taxon_key": 4115726,
+   "n_records": 83,
+   "n_global": 230,
+   "stratum": "G1"
+  },
+  {
+   "species": "Chusquea paludicola",
+   "family": "Poaceae",
+   "taxon_key": 4131883,
+   "n_records": 106,
+   "n_global": 126,
+   "stratum": "G1"
+  },
+  {
+   "species": "Elytrostachys clavigera",
+   "family": "Poaceae",
+   "taxon_key": 4152743,
+   "n_records": 54,
+   "n_global": 304,
+   "stratum": "G1"
+  },
+  {
+   "species": "Rhipidocladum maxonii",
+   "family": "Poaceae",
+   "taxon_key": 4143012,
+   "n_records": 46,
+   "n_global": 84,
+   "stratum": "G1"
+  },
+  {
+   "species": "Ardisia capitellata",
+   "family": "Primulaceae",
+   "taxon_key": 5557440,
+   "n_records": 91,
+   "n_global": 106,
+   "stratum": "G1"
+  },
+  {
+   "species": "Hymenandra sordida",
+   "family": "Primulaceae",
+   "taxon_key": 3722259,
+   "n_records": 61,
+   "n_global": 68,
+   "stratum": "G1"
+  },
+  {
+   "species": "Prockia costaricensis",
+   "family": "Salicaceae",
+   "taxon_key": 4261319,
+   "n_records": 48,
+   "n_global": 61,
+   "stratum": "G1"
+  },
+  {
+   "species": "Bernardia nicaraguensis",
+   "family": "Vol V",
+   "taxon_key": 5378336,
+   "n_records": 109,
+   "n_global": 267,
+   "stratum": "G1"
+  },
+  {
+   "species": "Poikilacanthus macranthus",
+   "family": "Acanthaceae",
+   "taxon_key": 3774973,
+   "n_records": 129,
+   "n_global": 394,
+   "stratum": "G2"
+  },
+  {
+   "species": "Bomarea acutifolia",
+   "family": "Alstroemeriaceae",
+   "taxon_key": 11298101,
+   "n_records": 97,
+   "n_global": 1073,
+   "stratum": "G2"
+  },
+  {
+   "species": "Amphipterygium simplicifolium",
+   "family": "Anacardiaceae",
+   "taxon_key": 3661528,
+   "n_records": 97,
+   "n_global": 355,
+   "stratum": "G2"
+  },
+  {
+   "species": "Guatteria aeruginosa",
+   "family": "Annonaceae",
+   "taxon_key": 3155799,
+   "n_records": 362,
+   "n_global": 506,
+   "stratum": "G2"
+  },
+  {
+   "species": "Aspidosperma megalocarpon",
+   "family": "Apocynaceae",
+   "taxon_key": 7316950,
+   "n_records": 71,
+   "n_global": 1262,
+   "stratum": "G2"
+  },
+  {
+   "species": "Marsdenia macrophylla",
+   "family": "Apocynaceae",
+   "taxon_key": 3571692,
+   "n_records": 49,
+   "n_global": 1126,
+   "stratum": "G2"
+  },
+  {
+   "species": "Tabernaemontana longipes",
+   "family": "Apocynaceae",
+   "taxon_key": 3616346,
+   "n_records": 623,
+   "n_global": 1092,
+   "stratum": "G2"
+  },
+  {
+   "species": "Anthurium caperatum",
+   "family": "Araceae",
+   "taxon_key": 2872363,
+   "n_records": 346,
+   "n_global": 594,
+   "stratum": "G2"
+  },
+  {
+   "species": "Anthurium lancifolium",
+   "family": "Araceae",
+   "taxon_key": 2872617,
+   "n_records": 267,
+   "n_global": 937,
+   "stratum": "G2"
+  },
+  {
+   "species": "Anthurium trisectum",
+   "family": "Araceae",
+   "taxon_key": 2873205,
+   "n_records": 46,
+   "n_global": 337,
+   "stratum": "G2"
+  },
+  {
+   "species": "Philodendron anisotomum",
+   "family": "Araceae",
+   "taxon_key": 2870649,
+   "n_records": 327,
+   "n_global": 742,
+   "stratum": "G2"
+  },
+  {
+   "species": "Philodendron rothschuhianum",
+   "family": "Araceae",
+   "taxon_key": 2870957,
+   "n_records": 188,
+   "n_global": 376,
+   "stratum": "G2"
+  },
+  {
+   "species": "Spathiphyllum phryniifolium",
+   "family": "Araceae",
+   "taxon_key": 2869659,
+   "n_records": 145,
+   "n_global": 622,
+   "stratum": "G2"
+  },
+  {
+   "species": "Schefflera nicaraguensis",
+   "family": "Araliaceae",
+   "taxon_key": 3038457,
+   "n_records": 60,
+   "n_global": 540,
+   "stratum": "G2"
+  },
+  {
+   "species": "Geonoma congesta",
+   "family": "Arecaceae",
+   "taxon_key": 2734302,
+   "n_records": 295,
+   "n_global": 1041,
+   "stratum": "G2"
+  },
+  {
+   "species": "Dracaena americana",
+   "family": "Asparagaceae",
+   "taxon_key": 12171326,
+   "n_records": 61,
+   "n_global": 862,
+   "stratum": "G2"
+  },
+  {
+   "species": "Bidens riparia",
+   "family": "Asteraceae",
+   "taxon_key": 7748985,
+   "n_records": 35,
+   "n_global": 995,
+   "stratum": "G2"
+  },
+  {
+   "species": "Dahlia imperialis",
+   "family": "Asteraceae",
+   "taxon_key": 8190990,
+   "n_records": 97,
+   "n_global": 1503,
+   "stratum": "G2"
+  },
+  {
+   "species": "Lepidaploa salzmannii",
+   "family": "Asteraceae",
+   "taxon_key": 3124869,
+   "n_records": 140,
+   "n_global": 1449,
+   "stratum": "G2"
+  },
+  {
+   "species": "Oyedaea verbesinoides",
+   "family": "Asteraceae",
+   "taxon_key": 3086681,
+   "n_records": 143,
+   "n_global": 538,
+   "stratum": "G2"
+  },
+  {
+   "species": "Sinclairia polyantha",
+   "family": "Asteraceae",
+   "taxon_key": 5389346,
+   "n_records": 134,
+   "n_global": 543,
+   "stratum": "G2"
+  },
+  {
+   "species": "Begonia plebeja",
+   "family": "Begoniaceae",
+   "taxon_key": 7303348,
+   "n_records": 96,
+   "n_global": 1002,
+   "stratum": "G2"
+  },
+  {
+   "species": "Fridericia schumanniana",
+   "family": "Bignoniaceae",
+   "taxon_key": 7930324,
+   "n_records": 139,
+   "n_global": 1020,
+   "stratum": "G2"
+  },
+  {
+   "species": "Cardamine ovata",
+   "family": "Brassicaceae",
+   "taxon_key": 3045644,
+   "n_records": 56,
+   "n_global": 593,
+   "stratum": "G2"
+  },
+  {
+   "species": "Guzmania donnellsmithii",
+   "family": "Bromeliaceae",
+   "taxon_key": 2699054,
+   "n_records": 197,
+   "n_global": 381,
+   "stratum": "G2"
+  },
+  {
+   "species": "Tillandsia butzii",
+   "family": "Bromeliaceae",
+   "taxon_key": 2695501,
+   "n_records": 109,
+   "n_global": 1253,
+   "stratum": "G2"
+  },
+  {
+   "species": "Werauhia ororiensis",
+   "family": "Bromeliaceae",
+   "taxon_key": 2699958,
+   "n_records": 553,
+   "n_global": 765,
+   "stratum": "G2"
+  },
+  {
+   "species": "Trattinnickia aspera",
+   "family": "Burseraceae",
+   "taxon_key": 3992709,
+   "n_records": 68,
+   "n_global": 565,
+   "stratum": "G2"
+  },
+  {
+   "species": "Centropogon congestus",
+   "family": "Campanulaceae",
+   "taxon_key": 5412739,
+   "n_records": 75,
+   "n_global": 321,
+   "stratum": "G2"
+  },
+  {
+   "species": "Cynophalla amplissima",
+   "family": "Capparaceae",
+   "taxon_key": 6069330,
+   "n_records": 123,
+   "n_global": 989,
+   "stratum": "G2"
+  },
+  {
+   "species": "Cuervea kappleriana",
+   "family": "Celastraceae",
+   "taxon_key": 3792999,
+   "n_records": 72,
+   "n_global": 627,
+   "stratum": "G2"
+  },
+  {
+   "species": "Hedyosmum costaricense",
+   "family": "Chloranthaceae",
+   "taxon_key": 3750566,
+   "n_records": 307,
+   "n_global": 436,
+   "stratum": "G2"
+  },
+  {
+   "species": "Chrysochlamys nicaraguensis",
+   "family": "Clusiaceae",
+   "taxon_key": 5555717,
+   "n_records": 162,
+   "n_global": 465,
+   "stratum": "G2"
+  },
+  {
+   "species": "Tovomita weddelliana",
+   "family": "Clusiaceae",
+   "taxon_key": 10648384,
+   "n_records": 146,
+   "n_global": 1455,
+   "stratum": "G2"
+  },
+  {
+   "species": "Ipomoea aristolochiifolia",
+   "family": "Convolvulaceae",
+   "taxon_key": 2928559,
+   "n_records": 36,
+   "n_global": 1122,
+   "stratum": "G2"
+  },
+  {
+   "species": "Ipomoea squamosa",
+   "family": "Convolvulaceae",
+   "taxon_key": 4927163,
+   "n_records": 91,
+   "n_global": 1370,
+   "stratum": "G2"
+  },
+  {
+   "species": "Varronia dichotoma",
+   "family": "Cordiaceae",
+   "taxon_key": 4060884,
+   "n_records": 113,
+   "n_global": 1505,
+   "stratum": "G2"
+  },
+  {
+   "species": "Dimerocostus strobilaceus",
+   "family": "Costaceae",
+   "taxon_key": 2756979,
+   "n_records": 47,
+   "n_global": 1297,
+   "stratum": "G2"
+  },
+  {
+   "species": "Psiguria warscewiczii",
+   "family": "Cucurbitaceae",
+   "taxon_key": 3624367,
+   "n_records": 171,
+   "n_global": 804,
+   "stratum": "G2"
+  },
+  {
+   "species": "Carex jamesonii",
+   "family": "Cyperaceae",
+   "taxon_key": 2724972,
+   "n_records": 91,
+   "n_global": 632,
+   "stratum": "G2"
+  },
+  {
+   "species": "Rhynchospora schiedeana",
+   "family": "Cyperaceae",
+   "taxon_key": 2721527,
+   "n_records": 93,
+   "n_global": 493,
+   "stratum": "G2"
+  },
+  {
+   "species": "Dioscorea racemosa",
+   "family": "Dioscoreaceae",
+   "taxon_key": 11037172,
+   "n_records": 167,
+   "n_global": 423,
+   "stratum": "G2"
+  },
+  {
+   "species": "Sloanea terniflora",
+   "family": "Elaeocarpaceae",
+   "taxon_key": 5651141,
+   "n_records": 228,
+   "n_global": 1421,
+   "stratum": "G2"
+  },
+  {
+   "species": "Paepalanthus pilosus",
+   "family": "Eriocaulaceae",
+   "taxon_key": 5287095,
+   "n_records": 40,
+   "n_global": 417,
+   "stratum": "G2"
+  },
+  {
+   "species": "Croton jutiapensis",
+   "family": "Euphorbiaceae",
+   "taxon_key": 3058261,
+   "n_records": 248,
+   "n_global": 611,
+   "stratum": "G2"
+  },
+  {
+   "species": "Manihot aesculifolia",
+   "family": "Euphorbiaceae",
+   "taxon_key": 3061128,
+   "n_records": 252,
+   "n_global": 1412,
+   "stratum": "G2"
+  },
+  {
+   "species": "Aeschynomene scabra",
+   "family": "Fabaceae",
+   "taxon_key": 2949343,
+   "n_records": 55,
+   "n_global": 694,
+   "stratum": "G2"
+  },
+  {
+   "species": "Centrosema sagittatum",
+   "family": "Fabaceae",
+   "taxon_key": 7830690,
+   "n_records": 71,
+   "n_global": 1550,
+   "stratum": "G2"
+  },
+  {
+   "species": "Desmodium caripense",
+   "family": "Fabaceae",
+   "taxon_key": 2967099,
+   "n_records": 51,
+   "n_global": 567,
+   "stratum": "G2"
+  },
+  {
+   "species": "Havardia platyloba",
+   "family": "Fabaceae",
+   "taxon_key": 2977796,
+   "n_records": 72,
+   "n_global": 968,
+   "stratum": "G2"
+  },
+  {
+   "species": "Inga venusta",
+   "family": "Fabaceae",
+   "taxon_key": 5357881,
+   "n_records": 162,
+   "n_global": 516,
+   "stratum": "G2"
+  },
+  {
+   "species": "Machaerium floribundum",
+   "family": "Fabaceae",
+   "taxon_key": 5354927,
+   "n_records": 37,
+   "n_global": 937,
+   "stratum": "G2"
+  },
+  {
+   "species": "Mucuna holtonii",
+   "family": "Fabaceae",
+   "taxon_key": 2951483,
+   "n_records": 203,
+   "n_global": 511,
+   "stratum": "G2"
+  },
+  {
+   "species": "Senegalia hayesii",
+   "family": "Fabaceae",
+   "taxon_key": 2981234,
+   "n_records": 40,
+   "n_global": 440,
+   "stratum": "G2"
+  },
+  {
+   "species": "Quercus benthamii",
+   "family": "Fagaceae",
+   "taxon_key": 2879030,
+   "n_records": 193,
+   "n_global": 1516,
+   "stratum": "G2"
+  },
+  {
+   "species": "Voyria tenella",
+   "family": "Gentianaceae",
+   "taxon_key": 3170032,
+   "n_records": 161,
+   "n_global": 1448,
+   "stratum": "G2"
+  },
+  {
+   "species": "Chrysothemis friedrichsthaliana",
+   "family": "Gesneriaceae",
+   "taxon_key": 5591990,
+   "n_records": 402,
+   "n_global": 1345,
+   "stratum": "G2"
+  },
+  {
+   "species": "Columnea verecunda",
+   "family": "Gesneriaceae",
+   "taxon_key": 5591820,
+   "n_records": 130,
+   "n_global": 373,
+   "stratum": "G2"
+  },
+  {
+   "species": "Gasteranthus delphinioides",
+   "family": "Gesneriaceae",
+   "taxon_key": 3818412,
+   "n_records": 104,
+   "n_global": 413,
+   "stratum": "G2"
+  },
+  {
+   "species": "Solenophora calycosa",
+   "family": "Gesneriaceae",
+   "taxon_key": 6365739,
+   "n_records": 327,
+   "n_global": 684,
+   "stratum": "G2"
+  },
+  {
+   "species": "Tournefortia angustiflora",
+   "family": "Heliotropiaceae",
+   "taxon_key": 10931974,
+   "n_records": 62,
+   "n_global": 556,
+   "stratum": "G2"
+  },
+  {
+   "species": "Vismia billbergiana",
+   "family": "Hypericaceae",
+   "taxon_key": 3714594,
+   "n_records": 146,
+   "n_global": 514,
+   "stratum": "G2"
+  },
+  {
+   "species": "Hyptis brachiata",
+   "family": "Lamiaceae",
+   "taxon_key": 3882539,
+   "n_records": 139,
+   "n_global": 779,
+   "stratum": "G2"
+  },
+  {
+   "species": "Beilschmiedia costaricensis",
+   "family": "Lauraceae",
+   "taxon_key": 4177855,
+   "n_records": 185,
+   "n_global": 935,
+   "stratum": "G2"
+  },
+  {
+   "species": "Ocotea laetevirens",
+   "family": "Lauraceae",
+   "taxon_key": 4180029,
+   "n_records": 315,
+   "n_global": 416,
+   "stratum": "G2"
+  },
+  {
+   "species": "Eschweilera pittieri",
+   "family": "Lecythidaceae",
+   "taxon_key": 3083352,
+   "n_records": 33,
+   "n_global": 714,
+   "stratum": "G2"
+  },
+  {
+   "species": "Strychnos peckii",
+   "family": "Loganiaceae",
+   "taxon_key": 7289415,
+   "n_records": 80,
+   "n_global": 912,
+   "stratum": "G2"
+  },
+  {
+   "species": "Cuphea utriculosa",
+   "family": "Lythraceae",
+   "taxon_key": 7286379,
+   "n_records": 148,
+   "n_global": 1225,
+   "stratum": "G2"
+  },
+  {
+   "species": "Hiraea faginea",
+   "family": "Malpighiaceae",
+   "taxon_key": 3191289,
+   "n_records": 104,
+   "n_global": 899,
+   "stratum": "G2"
+  },
+  {
+   "species": "Kearnemalvastrum subtriflorum",
+   "family": "Malvaceae",
+   "taxon_key": 3939665,
+   "n_records": 33,
+   "n_global": 756,
+   "stratum": "G2"
+  },
+  {
+   "species": "Sida aggregata",
+   "family": "Malvaceae",
+   "taxon_key": 5406737,
+   "n_records": 51,
+   "n_global": 784,
+   "stratum": "G2"
+  },
+  {
+   "species": "Pleiostachya pruinosa",
+   "family": "Marantaceae",
+   "taxon_key": 2762184,
+   "n_records": 197,
+   "n_global": 784,
+   "stratum": "G2"
+  },
+  {
+   "species": "Blakea gracilis",
+   "family": "Melastomataceae",
+   "taxon_key": 6634904,
+   "n_records": 293,
+   "n_global": 638,
+   "stratum": "G2"
+  },
+  {
+   "species": "Clidemia discolor",
+   "family": "Melastomataceae",
+   "taxon_key": 10800391,
+   "n_records": 250,
+   "n_global": 704,
+   "stratum": "G2"
+  },
+  {
+   "species": "Conostegia macrantha",
+   "family": "Melastomataceae",
+   "taxon_key": 10822756,
+   "n_records": 149,
+   "n_global": 313,
+   "stratum": "G2"
+  },
+  {
+   "species": "Henriettella fascicularis",
+   "family": "Melastomataceae",
+   "taxon_key": 8949959,
+   "n_records": 52,
+   "n_global": 819,
+   "stratum": "G2"
+  },
+  {
+   "species": "Miconia appendiculata",
+   "family": "Melastomataceae",
+   "taxon_key": 3860036,
+   "n_records": 109,
+   "n_global": 349,
+   "stratum": "G2"
+  },
+  {
+   "species": "Miconia hondurensis",
+   "family": "Melastomataceae",
+   "taxon_key": 3864206,
+   "n_records": 98,
+   "n_global": 607,
+   "stratum": "G2"
+  },
+  {
+   "species": "Miconia paleacea",
+   "family": "Melastomataceae",
+   "taxon_key": 3858929,
+   "n_records": 138,
+   "n_global": 606,
+   "stratum": "G2"
+  },
+  {
+   "species": "Ossaea robusta",
+   "family": "Melastomataceae",
+   "taxon_key": 7944212,
+   "n_records": 256,
+   "n_global": 999,
+   "stratum": "G2"
+  },
+  {
+   "species": "Triolena hirsuta",
+   "family": "Melastomataceae",
+   "taxon_key": 5601083,
+   "n_records": 364,
+   "n_global": 1031,
+   "stratum": "G2"
+  },
+  {
+   "species": "Glinus radiatus",
+   "family": "Molluginaceae",
+   "taxon_key": 3084618,
+   "n_records": 42,
+   "n_global": 1531,
+   "stratum": "G2"
+  },
+  {
+   "species": "Ficus macbridei",
+   "family": "Moraceae",
+   "taxon_key": 5571803,
+   "n_records": 213,
+   "n_global": 794,
+   "stratum": "G2"
+  },
+  {
+   "species": "Musa coccinea",
+   "family": "Musaceae",
+   "taxon_key": 2762920,
+   "n_records": 70,
+   "n_global": 525,
+   "stratum": "G2"
+  },
+  {
+   "species": "Psidium friedrichsthalianum",
+   "family": "Myrtaceae",
+   "taxon_key": 5420358,
+   "n_records": 69,
+   "n_global": 590,
+   "stratum": "G2"
+  },
+  {
+   "species": "Ludwigia inclinata",
+   "family": "Onagraceae",
+   "taxon_key": 8521477,
+   "n_records": 57,
+   "n_global": 858,
+   "stratum": "G2"
+  },
+  {
+   "species": "Elleanthus cynarocephalus",
+   "family": "Orchidaceae",
+   "taxon_key": 2839376,
+   "n_records": 108,
+   "n_global": 1523,
+   "stratum": "G2"
+  },
+  {
+   "species": "Maxillaria fulgens",
+   "family": "Orchidaceae",
+   "taxon_key": 5318163,
+   "n_records": 132,
+   "n_global": 352,
+   "stratum": "G2"
+  },
+  {
+   "species": "Pleurothallis cardiothallis",
+   "family": "Orchidaceae",
+   "taxon_key": 2787614,
+   "n_records": 109,
+   "n_global": 678,
+   "stratum": "G2"
+  },
+  {
+   "species": "Scaphyglottis bidentata",
+   "family": "Orchidaceae",
+   "taxon_key": 2847054,
+   "n_records": 43,
+   "n_global": 322,
+   "stratum": "G2"
+  },
+  {
+   "species": "Oxalis spiralis",
+   "family": "Oxalidaceae",
+   "taxon_key": 7156841,
+   "n_records": 235,
+   "n_global": 1422,
+   "stratum": "G2"
+  },
+  {
+   "species": "Passiflora seemannii",
+   "family": "Passifloraceae",
+   "taxon_key": 3586863,
+   "n_records": 80,
+   "n_global": 584,
+   "stratum": "G2"
+  },
+  {
+   "species": "Calamagrostis intermedia",
+   "family": "Poaceae",
+   "taxon_key": 12204055,
+   "n_records": 53,
+   "n_global": 1294,
+   "stratum": "G2"
+  },
+  {
+   "species": "Dichanthelium viscidellum",
+   "family": "Poaceae",
+   "taxon_key": 4133303,
+   "n_records": 130,
+   "n_global": 1042,
+   "stratum": "G2"
+  },
+  {
+   "species": "Muhlenbergia tenella",
+   "family": "Poaceae",
+   "taxon_key": 4149192,
+   "n_records": 52,
+   "n_global": 1332,
+   "stratum": "G2"
+  },
+  {
+   "species": "Pennisetum bambusiforme",
+   "family": "Poaceae",
+   "taxon_key": 9500927,
+   "n_records": 79,
+   "n_global": 892,
+   "stratum": "G2"
+  },
+  {
+   "species": "Ardisia opegrapha",
+   "family": "Primulaceae",
+   "taxon_key": 7331129,
+   "n_records": 609,
+   "n_global": 1203,
+   "stratum": "G2"
+  },
+  {
+   "species": "Casearia tacanensis",
+   "family": "Salicaceae",
+   "taxon_key": 8423811,
+   "n_records": 246,
+   "n_global": 544,
+   "stratum": "G2"
+  },
+  {
+   "species": "Viburnum costaricanum",
+   "family": "Viburnaceae",
+   "taxon_key": 3856689,
+   "n_records": 599,
+   "n_global": 1099,
+   "stratum": "G2"
+  },
+  {
+   "species": "Swartzia costaricensis",
+   "family": "Vol V",
+   "taxon_key": 5351845,
+   "n_records": 341,
+   "n_global": 929,
+   "stratum": "G2"
+  },
+  {
+   "species": "Aphelandra aurantiaca",
+   "family": "Acanthaceae",
+   "taxon_key": 7264328,
+   "n_records": 398,
+   "n_global": 2695,
+   "stratum": "G3"
+  },
+  {
+   "species": "Justicia pectoralis",
+   "family": "Acanthaceae",
+   "taxon_key": 7624130,
+   "n_records": 61,
+   "n_global": 2522,
+   "stratum": "G3"
+  },
+  {
+   "species": "Thunbergia fragrans",
+   "family": "Acanthaceae",
+   "taxon_key": 5415458,
+   "n_records": 96,
+   "n_global": 5038,
+   "stratum": "G3"
+  },
+  {
+   "species": "Alternanthera ficoidea",
+   "family": "Amaranthaceae",
+   "taxon_key": 8160803,
+   "n_records": 62,
+   "n_global": 7155,
+   "stratum": "G3"
+  },
+  {
+   "species": "Anacardium occidentale",
+   "family": "Anacardiaceae",
+   "taxon_key": 5421368,
+   "n_records": 207,
+   "n_global": 16842,
+   "stratum": "G3"
+  },
+  {
+   "species": "Annona muricata",
+   "family": "Annonaceae",
+   "taxon_key": 5407273,
+   "n_records": 135,
+   "n_global": 6286,
+   "stratum": "G3"
+  },
+  {
+   "species": "Eryngium foetidum",
+   "family": "Apiaceae",
+   "taxon_key": 3034425,
+   "n_records": 242,
+   "n_global": 6129,
+   "stratum": "G3"
+  },
+  {
+   "species": "Odontadenia semidigyna",
+   "family": "Apocynaceae",
+   "taxon_key": 10525151,
+   "n_records": 212,
+   "n_global": 1965,
+   "stratum": "G3"
+  },
+  {
+   "species": "Thevetia ahouai",
+   "family": "Apocynaceae",
+   "taxon_key": 5536401,
+   "n_records": 82,
+   "n_global": 3376,
+   "stratum": "G3"
+  },
+  {
+   "species": "Monstera deliciosa",
+   "family": "Araceae",
+   "taxon_key": 2868241,
+   "n_records": 522,
+   "n_global": 6436,
+   "stratum": "G3"
+  },
+  {
+   "species": "Aralia excelsa",
+   "family": "Araliaceae",
+   "taxon_key": 3037048,
+   "n_records": 77,
+   "n_global": 2636,
+   "stratum": "G3"
+  },
+  {
+   "species": "Bactris major",
+   "family": "Arecaceae",
+   "taxon_key": 2733004,
+   "n_records": 129,
+   "n_global": 2863,
+   "stratum": "G3"
+  },
+  {
+   "species": "Prestoea acuminata",
+   "family": "Arecaceae",
+   "taxon_key": 2738961,
+   "n_records": 74,
+   "n_global": 20094,
+   "stratum": "G3"
+  },
+  {
+   "species": "Acmella repens",
+   "family": "Asteraceae",
+   "taxon_key": 5386723,
+   "n_records": 51,
+   "n_global": 6913,
+   "stratum": "G3"
+  },
+  {
+   "species": "Calea urticifolia",
+   "family": "Asteraceae",
+   "taxon_key": 7566486,
+   "n_records": 207,
+   "n_global": 3527,
+   "stratum": "G3"
+  },
+  {
+   "species": "Cosmos sulphureus",
+   "family": "Asteraceae",
+   "taxon_key": 3098951,
+   "n_records": 258,
+   "n_global": 15296,
+   "stratum": "G3"
+  },
+  {
+   "species": "Erigeron karvinskianus",
+   "family": "Asteraceae",
+   "taxon_key": 3147168,
+   "n_records": 82,
+   "n_global": 69789,
+   "stratum": "G3"
+  },
+  {
+   "species": "Linochilus rosmarinifolius",
+   "family": "Asteraceae",
+   "taxon_key": 3090609,
+   "n_records": 138,
+   "n_global": 1868,
+   "stratum": "G3"
+  },
+  {
+   "species": "Pluchea carolinensis",
+   "family": "Asteraceae",
+   "taxon_key": 3132710,
+   "n_records": 45,
+   "n_global": 6810,
+   "stratum": "G3"
+  },
+  {
+   "species": "Stevia lucida",
+   "family": "Asteraceae",
+   "taxon_key": 3125620,
+   "n_records": 48,
+   "n_global": 2374,
+   "stratum": "G3"
+  },
+  {
+   "species": "Verbesina turbacensis",
+   "family": "Asteraceae",
+   "taxon_key": 3148048,
+   "n_records": 150,
+   "n_global": 1732,
+   "stratum": "G3"
+  },
+  {
+   "species": "Begonia glabra",
+   "family": "Begoniaceae",
+   "taxon_key": 7303342,
+   "n_records": 370,
+   "n_global": 3650,
+   "stratum": "G3"
+  },
+  {
+   "species": "Dolichandra uncata",
+   "family": "Bignoniaceae",
+   "taxon_key": 6070571,
+   "n_records": 99,
+   "n_global": 2108,
+   "stratum": "G3"
+  },
+  {
+   "species": "Jacaranda copaia",
+   "family": "Bignoniaceae",
+   "taxon_key": 7298763,
+   "n_records": 59,
+   "n_global": 8542,
+   "stratum": "G3"
+  },
+  {
+   "species": "Cardamine flexuosa",
+   "family": "Brassicaceae",
+   "taxon_key": 3046076,
+   "n_records": 47,
+   "n_global": 312799,
+   "stratum": "G3"
+  },
+  {
+   "species": "Racinaea spiculosa",
+   "family": "Bromeliaceae",
+   "taxon_key": 2694851,
+   "n_records": 58,
+   "n_global": 1804,
+   "stratum": "G3"
+  },
+  {
+   "species": "Bursera graveolens",
+   "family": "Burseraceae",
+   "taxon_key": 7286883,
+   "n_records": 60,
+   "n_global": 19860,
+   "stratum": "G3"
+  },
+  {
+   "species": "Lobelia longiflora",
+   "family": "Campanulaceae",
+   "taxon_key": 3168943,
+   "n_records": 1046,
+   "n_global": 12089,
+   "stratum": "G3"
+  },
+  {
+   "species": "Valeriana scandens",
+   "family": "Caprifoliaceae",
+   "taxon_key": 2888764,
+   "n_records": 53,
+   "n_global": 3297,
+   "stratum": "G3"
+  },
+  {
+   "species": "Prionostemma asperum",
+   "family": "Celastraceae",
+   "taxon_key": 5579703,
+   "n_records": 35,
+   "n_global": 1603,
+   "stratum": "G3"
+  },
+  {
+   "species": "Clusia rosea",
+   "family": "Clusiaceae",
+   "taxon_key": 5421060,
+   "n_records": 142,
+   "n_global": 4242,
+   "stratum": "G3"
+  },
+  {
+   "species": "Commelina erecta",
+   "family": "Commelinaceae",
+   "taxon_key": 2764389,
+   "n_records": 196,
+   "n_global": 49328,
+   "stratum": "G3"
+  },
+  {
+   "species": "Ipomoea alba",
+   "family": "Convolvulaceae",
+   "taxon_key": 2928631,
+   "n_records": 105,
+   "n_global": 11703,
+   "stratum": "G3"
+  },
+  {
+   "species": "Ipomoea tiliacea",
+   "family": "Convolvulaceae",
+   "taxon_key": 2928552,
+   "n_records": 87,
+   "n_global": 4050,
+   "stratum": "G3"
+  },
+  {
+   "species": "Varronia spinescens",
+   "family": "Cordiaceae",
+   "taxon_key": 4059050,
+   "n_records": 415,
+   "n_global": 4869,
+   "stratum": "G3"
+  },
+  {
+   "species": "Cucurbita pepo",
+   "family": "Cucurbitaceae",
+   "taxon_key": 2874508,
+   "n_records": 31,
+   "n_global": 24333,
+   "stratum": "G3"
+  },
+  {
+   "species": "Bulbostylis junciformis",
+   "family": "Cymodoceaceae_Cyperaceae",
+   "taxon_key": 5292186,
+   "n_records": 36,
+   "n_global": 4654,
+   "stratum": "G3"
+  },
+  {
+   "species": "Cyperus laxus",
+   "family": "Cyperaceae",
+   "taxon_key": 2713471,
+   "n_records": 299,
+   "n_global": 6604,
+   "stratum": "G3"
+  },
+  {
+   "species": "Eleocharis interstincta",
+   "family": "Cyperaceae",
+   "taxon_key": 2716972,
+   "n_records": 45,
+   "n_global": 4338,
+   "stratum": "G3"
+  },
+  {
+   "species": "Kyllinga brevifolia",
+   "family": "Cyperaceae",
+   "taxon_key": 2718767,
+   "n_records": 90,
+   "n_global": 17383,
+   "stratum": "G3"
+  },
+  {
+   "species": "Scleria distans",
+   "family": "Cyperaceae",
+   "taxon_key": 2712325,
+   "n_records": 79,
+   "n_global": 3806,
+   "stratum": "G3"
+  },
+  {
+   "species": "Dioscorea polygonoides",
+   "family": "Dioscoreaceae",
+   "taxon_key": 2754948,
+   "n_records": 71,
+   "n_global": 2456,
+   "stratum": "G3"
+  },
+  {
+   "species": "Vaccinium floribundum",
+   "family": "Ericaceae",
+   "taxon_key": 7971787,
+   "n_records": 145,
+   "n_global": 7561,
+   "stratum": "G3"
+  },
+  {
+   "species": "Acalypha villosa",
+   "family": "Euphorbiaceae",
+   "taxon_key": 3056634,
+   "n_records": 204,
+   "n_global": 3252,
+   "stratum": "G3"
+  },
+  {
+   "species": "Croton niveus",
+   "family": "Euphorbiaceae",
+   "taxon_key": 3057588,
+   "n_records": 246,
+   "n_global": 2566,
+   "stratum": "G3"
+  },
+  {
+   "species": "Euphorbia hyssopifolia",
+   "family": "Euphorbiaceae",
+   "taxon_key": 3065912,
+   "n_records": 327,
+   "n_global": 15362,
+   "stratum": "G3"
+  },
+  {
+   "species": "Manihot brachyloba",
+   "family": "Euphorbiaceae",
+   "taxon_key": 3061115,
+   "n_records": 249,
+   "n_global": 1848,
+   "stratum": "G3"
+  },
+  {
+   "species": "Alysicarpus vaginalis",
+   "family": "Fabaceae",
+   "taxon_key": 2948605,
+   "n_records": 97,
+   "n_global": 10361,
+   "stratum": "G3"
+  },
+  {
+   "species": "Canavalia brasiliensis",
+   "family": "Fabaceae",
+   "taxon_key": 2962154,
+   "n_records": 99,
+   "n_global": 3440,
+   "stratum": "G3"
+  },
+  {
+   "species": "Chloroleucon mangense",
+   "family": "Fabaceae",
+   "taxon_key": 2943053,
+   "n_records": 33,
+   "n_global": 11148,
+   "stratum": "G3"
+  },
+  {
+   "species": "Dalbergia brownei",
+   "family": "Fabaceae",
+   "taxon_key": 10668105,
+   "n_records": 138,
+   "n_global": 2139,
+   "stratum": "G3"
+  },
+  {
+   "species": "Desmodium intortum",
+   "family": "Fabaceae",
+   "taxon_key": 2967846,
+   "n_records": 150,
+   "n_global": 4141,
+   "stratum": "G3"
+  },
+  {
+   "species": "Eriosema crinitum",
+   "family": "Fabaceae",
+   "taxon_key": 5349020,
+   "n_records": 107,
+   "n_global": 2911,
+   "stratum": "G3"
+  },
+  {
+   "species": "Indigofera suffruticosa",
+   "family": "Fabaceae",
+   "taxon_key": 2971774,
+   "n_records": 119,
+   "n_global": 13617,
+   "stratum": "G3"
+  },
+  {
+   "species": "Inga thibaudiana",
+   "family": "Fabaceae",
+   "taxon_key": 5357991,
+   "n_records": 219,
+   "n_global": 7442,
+   "stratum": "G3"
+  },
+  {
+   "species": "Mimosa albida",
+   "family": "Fabaceae",
+   "taxon_key": 2969310,
+   "n_records": 160,
+   "n_global": 8851,
+   "stratum": "G3"
+  },
+  {
+   "species": "Pachyrhizus erosus",
+   "family": "Fabaceae",
+   "taxon_key": 2974683,
+   "n_records": 111,
+   "n_global": 4157,
+   "stratum": "G3"
+  },
+  {
+   "species": "Prosopis juliflora",
+   "family": "Fabaceae",
+   "taxon_key": 5358460,
+   "n_records": 137,
+   "n_global": 26059,
+   "stratum": "G3"
+  },
+  {
+   "species": "Senna hayesiana",
+   "family": "Fabaceae",
+   "taxon_key": 2957940,
+   "n_records": 212,
+   "n_global": 2288,
+   "stratum": "G3"
+  },
+  {
+   "species": "Stylosanthes humilis",
+   "family": "Fabaceae",
+   "taxon_key": 2975730,
+   "n_records": 83,
+   "n_global": 3403,
+   "stratum": "G3"
+  },
+  {
+   "species": "Vigna luteola",
+   "family": "Fabaceae",
+   "taxon_key": 2982573,
+   "n_records": 56,
+   "n_global": 14629,
+   "stratum": "G3"
+  },
+  {
+   "species": "Voyria aphylla",
+   "family": "Gentianaceae",
+   "taxon_key": 3170029,
+   "n_records": 42,
+   "n_global": 2286,
+   "stratum": "G3"
+  },
+  {
+   "species": "Heliotropium indicum",
+   "family": "Heliotropiaceae",
+   "taxon_key": 2925788,
+   "n_records": 196,
+   "n_global": 20159,
+   "stratum": "G3"
+  },
+  {
+   "species": "Sisyrinchium micranthum",
+   "family": "Iridaceae",
+   "taxon_key": 5296278,
+   "n_records": 115,
+   "n_global": 18446,
+   "stratum": "G3"
+  },
+  {
+   "species": "Hyptis spicigera",
+   "family": "Lamiaceae",
+   "taxon_key": 7664995,
+   "n_records": 30,
+   "n_global": 3232,
+   "stratum": "G3"
+  },
+  {
+   "species": "Beilschmiedia alloiophylla",
+   "family": "Lauraceae",
+   "taxon_key": 4178492,
+   "n_records": 140,
+   "n_global": 3801,
+   "stratum": "G3"
+  },
+  {
+   "species": "Persea caerulea",
+   "family": "Lauraceae",
+   "taxon_key": 4175764,
+   "n_records": 136,
+   "n_global": 3748,
+   "stratum": "G3"
+  },
+  {
+   "species": "Adenaria floribunda",
+   "family": "Lythraceae",
+   "taxon_key": 7286112,
+   "n_records": 71,
+   "n_global": 3366,
+   "stratum": "G3"
+  },
+  {
+   "species": "Stigmaphyllon lindenianum",
+   "family": "Malpighiaceae",
+   "taxon_key": 7285160,
+   "n_records": 240,
+   "n_global": 1819,
+   "stratum": "G3"
+  },
+  {
+   "species": "Malvaviscus penduliflorus",
+   "family": "Malvaceae",
+   "taxon_key": 3152776,
+   "n_records": 111,
+   "n_global": 3667,
+   "stratum": "G3"
+  },
+  {
+   "species": "Sida urens",
+   "family": "Malvaceae",
+   "taxon_key": 5406763,
+   "n_records": 99,
+   "n_global": 4976,
+   "stratum": "G3"
+  },
+  {
+   "species": "Aciotis rubricaulis",
+   "family": "Melastomataceae",
+   "taxon_key": 3861798,
+   "n_records": 509,
+   "n_global": 2816,
+   "stratum": "G3"
+  },
+  {
+   "species": "Henriettea succosa",
+   "family": "Melastomataceae",
+   "taxon_key": 3860494,
+   "n_records": 94,
+   "n_global": 2940,
+   "stratum": "G3"
+  },
+  {
+   "species": "Miconia ibaguensis",
+   "family": "Melastomataceae",
+   "taxon_key": 3863925,
+   "n_records": 176,
+   "n_global": 5110,
+   "stratum": "G3"
+  },
+  {
+   "species": "Miconia theizans",
+   "family": "Melastomataceae",
+   "taxon_key": 6749953,
+   "n_records": 221,
+   "n_global": 11848,
+   "stratum": "G3"
+  },
+  {
+   "species": "Trichilia havanensis",
+   "family": "Meliaceae",
+   "taxon_key": 7271307,
+   "n_records": 363,
+   "n_global": 5314,
+   "stratum": "G3"
+  },
+  {
+   "species": "Dendrobangia boliviana",
+   "family": "Metteniusaceae",
+   "taxon_key": 3596663,
+   "n_records": 121,
+   "n_global": 1693,
+   "stratum": "G3"
+  },
+  {
+   "species": "Ficus citrifolia",
+   "family": "Moraceae",
+   "taxon_key": 5361938,
+   "n_records": 394,
+   "n_global": 8225,
+   "stratum": "G3"
+  },
+  {
+   "species": "Olmedia aspera",
+   "family": "Moraceae",
+   "taxon_key": 7954917,
+   "n_records": 247,
+   "n_global": 2914,
+   "stratum": "G3"
+  },
+  {
+   "species": "Virola sebifera",
+   "family": "Myristicaceae",
+   "taxon_key": 3152846,
+   "n_records": 349,
+   "n_global": 10853,
+   "stratum": "G3"
+  },
+  {
+   "species": "Syzygium malaccense",
+   "family": "Myrtaceae",
+   "taxon_key": 3184509,
+   "n_records": 145,
+   "n_global": 4716,
+   "stratum": "G3"
+  },
+  {
+   "species": "Sauvagesia erecta",
+   "family": "Ochnaceae",
+   "taxon_key": 5421109,
+   "n_records": 400,
+   "n_global": 11926,
+   "stratum": "G3"
+  },
+  {
+   "species": "Ludwigia nervosa",
+   "family": "Onagraceae",
+   "taxon_key": 5545213,
+   "n_records": 33,
+   "n_global": 4097,
+   "stratum": "G3"
+  },
+  {
+   "species": "Maxillaria variabilis",
+   "family": "Orchidaceae",
+   "taxon_key": 5318544,
+   "n_records": 35,
+   "n_global": 1682,
+   "stratum": "G3"
+  },
+  {
+   "species": "Stenorrhynchos lanceolatum",
+   "family": "Orchidaceae",
+   "taxon_key": 2808912,
+   "n_records": 57,
+   "n_global": 6410,
+   "stratum": "G3"
+  },
+  {
+   "species": "Passiflora auriculata",
+   "family": "Passifloraceae",
+   "taxon_key": 3587589,
+   "n_records": 247,
+   "n_global": 3416,
+   "stratum": "G3"
+  },
+  {
+   "species": "Hieronyma oblonga",
+   "family": "Phyllanthaceae",
+   "taxon_key": 3079119,
+   "n_records": 604,
+   "n_global": 9884,
+   "stratum": "G3"
+  },
+  {
+   "species": "Rivina humilis",
+   "family": "Phytolaccaceae",
+   "taxon_key": 3084027,
+   "n_records": 506,
+   "n_global": 40182,
+   "stratum": "G3"
+  },
+  {
+   "species": "Aristida capillacea",
+   "family": "Poaceae",
+   "taxon_key": 4129168,
+   "n_records": 35,
+   "n_global": 1702,
+   "stratum": "G3"
+  },
+  {
+   "species": "Cynodon dactylon",
+   "family": "Poaceae",
+   "taxon_key": 6109637,
+   "n_records": 68,
+   "n_global": 174151,
+   "stratum": "G3"
+  },
+  {
+   "species": "Echinochloa colona",
+   "family": "Poaceae",
+   "taxon_key": 6431411,
+   "n_records": 224,
+   "n_global": 36156,
+   "stratum": "G3"
+  },
+  {
+   "species": "Hyparrhenia rufa",
+   "family": "Poaceae",
+   "taxon_key": 2703246,
+   "n_records": 204,
+   "n_global": 12712,
+   "stratum": "G3"
+  },
+  {
+   "species": "Leptochloa virgata",
+   "family": "Poaceae",
+   "taxon_key": 2703885,
+   "n_records": 38,
+   "n_global": 4291,
+   "stratum": "G3"
+  },
+  {
+   "species": "Panicum trichanthum",
+   "family": "Poaceae",
+   "taxon_key": 2705169,
+   "n_records": 30,
+   "n_global": 2045,
+   "stratum": "G3"
+  },
+  {
+   "species": "Pennisetum setosum",
+   "family": "Poaceae",
+   "taxon_key": 5673987,
+   "n_records": 49,
+   "n_global": 4327,
+   "stratum": "G3"
+  },
+  {
+   "species": "Schizachyrium sanguineum",
+   "family": "Poaceae",
+   "taxon_key": 2704446,
+   "n_records": 82,
+   "n_global": 10828,
+   "stratum": "G3"
+  },
+  {
+   "species": "Zeugites americana",
+   "family": "Poaceae",
+   "taxon_key": 5828130,
+   "n_records": 111,
+   "n_global": 1750,
+   "stratum": "G3"
+  },
+  {
+   "species": "Drypetes lateriflora",
+   "family": "Putranjivaceae",
+   "taxon_key": 3075805,
+   "n_records": 70,
+   "n_global": 1798,
+   "stratum": "G3"
+  },
+  {
+   "species": "Pleuranthodendron lindenii",
+   "family": "Salicaceae",
+   "taxon_key": 4261405,
+   "n_records": 195,
+   "n_global": 2989,
+   "stratum": "G3"
+  },
+  {
+   "species": "Hirtella racemosa",
+   "family": "Vol IV",
+   "taxon_key": 2985122,
+   "n_records": 255,
+   "n_global": 11866,
+   "stratum": "G3"
+  }
+ ]
+}
