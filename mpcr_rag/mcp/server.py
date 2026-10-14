@@ -26,6 +26,7 @@ import json
 import os
 import base64
 import dataclasses
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -43,7 +44,7 @@ server = MCPServer("mpcr-rag", version="0.1.0")
 # Shared lazy state — connections opened once per process lifetime
 # ---------------------------------------------------------------------------
 
-_conn = None
+"""_conn = None
 _index = None
 
 
@@ -51,8 +52,22 @@ def _get_conn():
     global _conn
     if _conn is None:
         _conn = local_store.connect(config.SQLITE_PATH)
-    return _conn
+    return _conn"""
 
+_local = threading.local()   # one SQLite connection per worker thread
+_index = None
+
+
+def _get_conn():
+    """SQLite connection for the current thread.
+
+    The MCP SDK runs sync tools in a worker-thread pool, and a sqlite3 connection
+    can only be used by the thread that opened it, so each thread opens its own.
+    """
+    conn = getattr(_local, "conn", None)
+    if conn is None:
+        conn = _local.conn = local_store.connect(config.SQLITE_PATH)
+    return conn
 
 def _get_index():
     """Pinecone index handle, or None (pgvector connects on demand)."""
@@ -342,7 +357,8 @@ def get_occurrence_points(species: str, limit: int = 500) -> dict:
         limit: maximum number of points returned (the count n is always total)
 
     Returns a provenance envelope whose value is:
-      {n, truncated, points: [{lat, lon, elev_m, region, vertiente}]}
+      {n, truncated, points: [{lat, lon, elev_m, region, vertiente, date}]}
+    date is the GBIF eventDate ('YYYY-MM-DD', 'YYYY-MM' or 'YYYY'), or None.
     """
     citation = "GBIF occurrence API — Costa Rica (occurrenceStatus=PRESENT, hasCoordinate=true, hasGeospatialIssue=false)"
     pts = gbif_map.get_points(species)
@@ -374,6 +390,7 @@ def get_occurrence_points(species: str, limit: int = 500) -> dict:
             "elev_m": None if elev is None else int(round(elev)),
             "region": _text(p.get("Nombre")),
             "vertiente": _text(p.get("Vertiente")),
+            "date": _text(p.get("date")),
         })
     return _envelope(
         {"n": len(pts), "truncated": len(pts) > limit, "points": points},

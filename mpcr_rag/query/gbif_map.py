@@ -89,13 +89,26 @@ def resolve_taxon(species: str) -> tuple[int | None, str | None, bool]:
         return int(acc["key"]), acc.get("canonicalName"), True
     return int(nb["usage"]["key"]), nb["usage"].get("canonicalName"), False
 
+def _record_date(rec: dict) -> str | None:
+    """GBIF collection date: eventDate as given, else year[-month[-day]]; None if absent."""
+    event = rec.get("eventDate")
+    if isinstance(event, str) and event.strip():
+        return event.strip()
+    year, month, day = rec.get("year"), rec.get("month"), rec.get("day")
+    if not year:
+        return None
+    if month and day:
+        return f"{int(year):04d}-{int(month):02d}-{int(day):02d}"
+    if month:
+        return f"{int(year):04d}-{int(month):02d}"
+    return f"{int(year):04d}"
 
 def _fetch_clean(species: str) -> gpd.GeoDataFrame:
     """CR occurrences for a species via accepted taxonKey, coordinate-cleaned.
 
-    Filters: GBIF occurrenceStatus=PRESENT and hasGeospatialIssue=False (absence
-    records are excluded); drops zero/near-zero coords, lat/lon swaps (point
-    outside CR but swap inside), and records coarser than ~10 km.
+    Filters: GBIF occurrenceStatus=PRESENT and hasGeospatialIssue=False; drops
+    zero/near-zero coords, lat/lon swaps (point outside CR but swap inside), and
+    records coarser than ~10 km. Keeps one point per location (its latest date).
     """
     key, _accepted, _syn = resolve_taxon(species)
     cols = ["lon", "lat", "geometry"]
@@ -128,11 +141,15 @@ def _fetch_clean(species: str) -> gpd.GeoDataFrame:
                 lon, lat = lat, lon
             else:
                 continue                                     # gross out-of-CR error
-        rows.append({"lon": lon, "lat": lat})
+        rows.append({"lon": lon, "lat": lat, "date": _record_date(rec)})
 
     df = pd.DataFrame(rows).drop_duplicates()
     if df.empty:
         return gpd.GeoDataFrame(columns=cols, geometry=[], crs="EPSG:4326")
+    # One point per location, as before; when a location repeats, keep its most
+    # recent record so the date shown is the latest observation there.
+    df = (df.sort_values("date", ascending=False, na_position="last")
+            .drop_duplicates(subset=["lon", "lat"]))
     return gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon, df.lat),
                             crs="EPSG:4326")
 
@@ -184,7 +201,7 @@ def get_points(species: str) -> gpd.GeoDataFrame:
 
     pts = _fetch_clean(species)
     if pts.empty:
-        pts = gpd.GeoDataFrame({"lon": [], "lat": [], "Altitud": [], "Nombre": [],
+        pts = gpd.GeoDataFrame({"lon": [], "lat": [], "date": [], "Altitud": [], "Nombre": [],
                                 "Vertiente": [], "species": []},
                                geometry=[], crs="EPSG:4326")
     else:
@@ -291,6 +308,8 @@ def single_species_map(f: Ficha, *, out_path: Path | None = None) -> tuple[Path,
     pts = get_points(f.species)
 
     out_path = out_path or (_MAPS / f"manual_{f.vector_id}.png")
+
+
     generate_distribution_map(df, out_path, presencias_gdf=pts if not pts.empty else None)
     return out_path, len(pts)
 
