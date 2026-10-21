@@ -408,10 +408,12 @@ def _build_right_legend(
         ))
 
     if ficha.elevation.has_data():
-        elev_min = ficha.elevation.min_m
-        elev_max = ficha.elevation.max_m
+        elev_min, elev_max = ficha.elevation.band()
         patches.append(mpatches.Patch(
-            color="#22d3ee", label=f"Hábitat óptimo ({int(elev_min)}–{int(elev_max)} m)",
+            color="#22d3ee",
+            label=(f"Hábitat óptimo ({ficha.elevation.label()})"
+                   if ficha.elevation.is_single_value()
+                   else f"Hábitat óptimo ({int(elev_min)}–{int(elev_max)} m)"),
         ))
         if ficha.elevation.outlier_min_m is not None:
             out_lo = ficha.elevation.outlier_min_m
@@ -715,7 +717,7 @@ def generate_distribution_map(
                 single = gpd.GeoDataFrame([row], crs=matched_parks_gdf.crs)
                 if _park_overlaps_elevation_range(
                     single, dem_path_check,
-                    ficha.elevation.min_m, ficha.elevation.max_m,
+                    *ficha.elevation.band(),
                 ):
                     keep_rows.append(i)
             matched_parks_gdf = matched_parks_gdf.loc[keep_rows]
@@ -785,8 +787,7 @@ def generate_distribution_map(
 
     dem_path = PATHS["dem"]
     if ficha.elevation.has_data() and dem_path.exists() and not elev_mask_gdf.empty:
-        elev_min = ficha.elevation.min_m
-        elev_max = ficha.elevation.max_m
+        elev_min, elev_max = ficha.elevation.band()
         _overlay_elevation(ax=ax, clip_gdf=elev_mask_gdf, dem_path=dem_path,
                            elev_min=elev_min, elev_max=elev_max)
 
@@ -810,7 +811,7 @@ def generate_distribution_map(
                     i for i, row in pa_filtered.iterrows()
                     if _park_overlaps_elevation_range(
                         gpd.GeoDataFrame([row], crs=pa_filtered.crs),
-                        dem_path, ficha.elevation.min_m, ficha.elevation.max_m,
+                        dem_path, *ficha.elevation.band(),
                     )
                 ]
                 pa_filtered = pa_filtered.loc[keep]

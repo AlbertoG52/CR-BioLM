@@ -133,19 +133,54 @@ _EVERYWHERE = re.compile(
     r"pr[áa]cticamente\s+todo\s+el\s+pa[ií]s", re.I)
 
 
+_NUM = r"(\d{1,2}[.,]\d{3}|\d{1,4})"
+_UP_TO = re.compile(
+    r"(?:nivel del mar|\b0\s*m(?:etros)?)?\s*\bhasta\s+(?:los\s+|unos\s+|aproximadamente\s+|"
+    r"cerca de\s+|alrededor de\s+)*" + _NUM + r"(?:\s*[–—-]\s*" + _NUM + r")?\s*"
+    r"(?:m\b|metros|msnm|m\.s\.n\.m)", re.I)
+
+
+def elevation_span(text: str) -> list[int] | None:
+    """The full span of elevation a description gives, lowest to highest.
+
+    The checker's parser reads "desde el nivel del mar hasta 1.500-2.000 m" as the range
+    1500-2000: it takes the hedged upper bound for the whole range and never sees the
+    sea level before it. For a single answer that is a detail; for a map it removes the
+    lowlands of every species described that way, which one of the two models does
+    often. Here an "up to" is an upper bound, hedged or not, and anything said to reach
+    sea level starts at zero. Occasional extremes ("ocasionalmente hasta 2.500 m") are
+    kept, as the Manual's outlier bounds are kept on our side.
+    """
+    spans = list(V.parse_elevations(text))
+    for m in _UP_TO.finditer(text):
+        top = max(V._num(g) for g in m.groups() if g)
+        if top <= 4000:
+            spans.append((0, top))
+    if not spans:
+        return None
+    return [min(a for a, _ in spans), max(b for _, b in spans)]
+
+
 def from_text(text: str) -> dict:
-    spans = V.parse_elevations(text)
+    spans = elevation_span(text)
     everywhere = bool(_EVERYWHERE.search(text))
     regions = (sorted(set(_grid()[0])) if everywhere else sorted(V._regions_named(text)))
     return {"regions": regions,
             "slopes": [] if everywhere else sorted(V.parse_slopes(text)),
             "everywhere": everywhere,
-            "elev": [min(a for a, _ in spans), max(b for _, b in spans)] if spans else None}
+            "elev": spans}
 
 
 def from_ficha(f) -> dict:
     lo = f.elev_outlier_min if f.elev_outlier_min is not None else f.elev_min
     hi = f.elev_outlier_max if f.elev_outlier_max is not None else f.elev_max
+    if (lo is not None and lo == hi and f.elev_outlier_min is None
+            and f.elev_outlier_max is None):
+        # A single approximate value ("ca. 1400 m") is drawn as a band, as the renderer
+        # now draws it (ElevationRange.band). Added after the comparison had been run;
+        # it touches 2 of the 300 sampled species and both figures are reported.
+        from utils.distribution_map.ficha import SINGLE_VALUE_MARGIN_M
+        lo, hi = max(0, lo - SINGLE_VALUE_MARGIN_M), hi + SINGLE_VALUE_MARGIN_M
     return {"regions": sorted(f.regions or []), "slopes": sorted(f.vertientes or []),
             "elev": [lo, hi] if lo is not None and hi is not None else None}
 

@@ -75,7 +75,9 @@ def _panel(ax, title: str, ing: dict | None, pts: list) -> None:
 
 def _describe(ing: dict) -> str:
     elev = f"{ing['elev'][0]}–{ing['elev'][1]} m" if ing["elev"] else "sin altitud"
-    reg = ", ".join(ing["regions"]) if ing["regions"] else "sin regiones"
+    r = ing["regions"]
+    reg = ("todo el país" if ing.get("everywhere") else "sin regiones" if not r
+           else ", ".join(r) if len(r) <= 4 else ", ".join(r[:3]) + f" y {len(r) - 3} más")
     return f"{elev} · {', '.join(ing['slopes']) or 'sin vertiente'} · {reg}"
 
 

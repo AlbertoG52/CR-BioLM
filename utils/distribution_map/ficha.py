@@ -12,6 +12,11 @@ from pathlib import Path
 from typing import Optional
 
 
+# Margin drawn around a single approximate elevation. The same 200 m the answer checker
+# allows on a stated elevation and the cultivation rule uses for "near the range".
+SINGLE_VALUE_MARGIN_M = 200
+
+
 @dataclass
 class ElevationRange:
     min_m: Optional[float] = None
@@ -22,10 +27,31 @@ class ElevationRange:
     def has_data(self) -> bool:
         return self.min_m is not None and self.max_m is not None
 
+    def is_single_value(self) -> bool:
+        """True when the Manual gives one approximate elevation ("ca. 1400 m") and no
+        outlier bounds, which it does for 277 species, usually known from one
+        collection."""
+        return (self.has_data() and self.min_m == self.max_m
+                and self.outlier_min_m is None and self.outlier_max_m is None)
+
+    def band(self) -> tuple[float, float]:
+        """The elevation interval to DRAW. A range is drawn as stated. A single
+        approximate value is drawn as a band of SINGLE_VALUE_MARGIN_M either side:
+        "ca." means about, and drawn as exactly that elevation the band matches almost
+        no terrain and the map shows nothing (Cucurbita pepo at "ca. 1400 m" captured
+        none of its 31 records; with the band, 9). The stored values are not changed --
+        this is how the map reads them, not what the Manual says."""
+        if self.is_single_value():
+            return (max(0.0, self.min_m - SINGLE_VALUE_MARGIN_M),
+                    self.max_m + SINGLE_VALUE_MARGIN_M)
+        return (self.min_m, self.max_m)
+
     def label(self) -> str:
         """Human-readable elevation string for map labels."""
         if not self.has_data():
             return "elevación no disponible"
+        if self.is_single_value():
+            return f"ca. {int(self.min_m)} m (±{SINGLE_VALUE_MARGIN_M} m)"
         s = f"{int(self.min_m)}–{int(self.max_m)} m"
         if self.outlier_min_m is not None or self.outlier_max_m is not None:
             parts = []
