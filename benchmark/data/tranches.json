@@ -95,5 +95,12 @@
     "Rourea glabra"
    ]
   }
- }
+ },
+ "decisions": [
+  {
+   "date": "2026-10-20",
+   "decision": "Tranche 1 stays confirmatory after the citation fix.",
+   "reason": "Between tranche 1 and tranche 2 the evidence pack changes only in the page number of its citation line (the stored page was the position inside the PDF, corrected to the book page on 2026-10-15). No key, rule, prompt or other evidence changed, and a page number cannot bear on whether an answer about elevation, slope, flowering, parks or uses is correct. Decided before tranche 2 was run."
+  }
+ ]
 }
