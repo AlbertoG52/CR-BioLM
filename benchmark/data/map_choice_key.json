@@ -1,0 +1,457 @@
+{
+ "seed": "20261023-map-choice",
+ "rule": "two sets of 20 from the 300-species map sample, random within worldwide-record tertiles (7, 7, 6), 5 species in both sets; map order random per species and expert",
+ "sets": {
+  "Armando": [
+   {
+    "n": 1,
+    "species": "Varronia dichotoma",
+    "letters": {
+     "A": "ours",
+     "B": "open",
+     "C": "paid",
+     "D": "manual"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 2,
+    "species": "Halenia aquilegiella",
+    "letters": {
+     "A": "manual",
+     "B": "ours",
+     "C": "open",
+     "D": "paid"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 3,
+    "species": "Pachyrhizus erosus",
+    "letters": {
+     "A": "open",
+     "B": "ours",
+     "C": "paid",
+     "D": "manual"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 4,
+    "species": "Cynodon dactylon",
+    "letters": {
+     "A": "open",
+     "B": "manual",
+     "C": "ours",
+     "D": "paid"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 5,
+    "species": "Monstera deliciosa",
+    "letters": {
+     "A": "manual",
+     "B": "open",
+     "C": "paid",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 6,
+    "species": "Ocotea pentagona",
+    "letters": {
+     "A": "open",
+     "B": "paid",
+     "C": "manual",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 7,
+    "species": "Chloroleucon mangense",
+    "letters": {
+     "A": "manual",
+     "B": "paid",
+     "C": "open",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 8,
+    "species": "Brunellia standleyana",
+    "letters": {
+     "A": "paid",
+     "B": "open",
+     "C": "ours",
+     "D": "manual"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 9,
+    "species": "Neea delicatula",
+    "letters": {
+     "A": "ours",
+     "B": "manual",
+     "C": "open",
+     "D": "paid"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 10,
+    "species": "Lepidaploa salzmannii",
+    "letters": {
+     "A": "open",
+     "B": "paid",
+     "C": "ours",
+     "D": "manual"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 11,
+    "species": "Schefflera robusta",
+    "letters": {
+     "A": "manual",
+     "B": "paid",
+     "C": "ours",
+     "D": "open"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 12,
+    "species": "Psidium friedrichsthalianum",
+    "letters": {
+     "A": "manual",
+     "B": "paid",
+     "C": "ours",
+     "D": "open"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 13,
+    "species": "Annona pittieri",
+    "letters": {
+     "A": "paid",
+     "B": "manual",
+     "C": "ours",
+     "D": "open"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 14,
+    "species": "Trichilia havanensis",
+    "letters": {
+     "A": "paid",
+     "B": "open",
+     "C": "manual",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 15,
+    "species": "Geonoma congesta",
+    "letters": {
+     "A": "ours",
+     "B": "manual",
+     "C": "open",
+     "D": "paid"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 16,
+    "species": "Ocotea laetevirens",
+    "letters": {
+     "A": "paid",
+     "B": "manual",
+     "C": "open",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 17,
+    "species": "Pleurothallis cardiothallis",
+    "letters": {
+     "A": "open",
+     "B": "manual",
+     "C": "paid",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 18,
+    "species": "Sida aggregata",
+    "letters": {
+     "A": "manual",
+     "B": "paid",
+     "C": "ours",
+     "D": "open"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 19,
+    "species": "Thevetia ahouai",
+    "letters": {
+     "A": "paid",
+     "B": "manual",
+     "C": "open",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 20,
+    "species": "Clidemia clandestina",
+    "letters": {
+     "A": "manual",
+     "B": "paid",
+     "C": "open",
+     "D": "ours"
+    },
+    "identical_ours_manual": true
+   }
+  ],
+  "Nelson": [
+   {
+    "n": 1,
+    "species": "Dracaena americana",
+    "letters": {
+     "A": "paid",
+     "B": "open",
+     "C": "ours",
+     "D": "manual"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 2,
+    "species": "Pennisetum bambusiforme",
+    "letters": {
+     "A": "paid",
+     "B": "ours",
+     "C": "manual",
+     "D": "open"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 3,
+    "species": "Pennisetum setosum",
+    "letters": {
+     "A": "ours",
+     "B": "manual",
+     "C": "paid",
+     "D": "open"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 4,
+    "species": "Dicranopygium umbrophilum",
+    "letters": {
+     "A": "open",
+     "B": "manual",
+     "C": "ours",
+     "D": "paid"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 5,
+    "species": "Ocotea laetevirens",
+    "letters": {
+     "A": "paid",
+     "B": "manual",
+     "C": "ours",
+     "D": "open"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 6,
+    "species": "Monopyle maxonii",
+    "letters": {
+     "A": "manual",
+     "B": "paid",
+     "C": "open",
+     "D": "ours"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 7,
+    "species": "Adenaria floribunda",
+    "letters": {
+     "A": "open",
+     "B": "manual",
+     "C": "ours",
+     "D": "paid"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 8,
+    "species": "Pavonia penduliflora",
+    "letters": {
+     "A": "manual",
+     "B": "paid",
+     "C": "open",
+     "D": "ours"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 9,
+    "species": "Beilschmiedia tilaranensis",
+    "letters": {
+     "A": "open",
+     "B": "manual",
+     "C": "ours",
+     "D": "paid"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 10,
+    "species": "Pachyrhizus erosus",
+    "letters": {
+     "A": "ours",
+     "B": "open",
+     "C": "paid",
+     "D": "manual"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 11,
+    "species": "Prionostemma asperum",
+    "letters": {
+     "A": "manual",
+     "B": "open",
+     "C": "paid",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 12,
+    "species": "Ipomoea aristolochiifolia",
+    "letters": {
+     "A": "ours",
+     "B": "paid",
+     "C": "manual",
+     "D": "open"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 13,
+    "species": "Ardisia opegrapha",
+    "letters": {
+     "A": "manual",
+     "B": "ours",
+     "C": "open",
+     "D": "paid"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 14,
+    "species": "Bartlettina platyphylla",
+    "letters": {
+     "A": "ours",
+     "B": "manual",
+     "C": "paid",
+     "D": "open"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 15,
+    "species": "Pleurothallis cardiothallis",
+    "letters": {
+     "A": "manual",
+     "B": "paid",
+     "C": "open",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 16,
+    "species": "Kearnemalvastrum subtriflorum",
+    "letters": {
+     "A": "open",
+     "B": "manual",
+     "C": "ours",
+     "D": "paid"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 17,
+    "species": "Eleocharis interstincta",
+    "letters": {
+     "A": "manual",
+     "B": "open",
+     "C": "paid",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 18,
+    "species": "Kyllinga brevifolia",
+    "letters": {
+     "A": "open",
+     "B": "paid",
+     "C": "manual",
+     "D": "ours"
+    },
+    "identical_ours_manual": false
+   },
+   {
+    "n": 19,
+    "species": "Clidemia clandestina",
+    "letters": {
+     "A": "paid",
+     "B": "ours",
+     "C": "manual",
+     "D": "open"
+    },
+    "identical_ours_manual": true
+   },
+   {
+    "n": 20,
+    "species": "Schefflera robusta",
+    "letters": {
+     "A": "manual",
+     "B": "paid",
+     "C": "ours",
+     "D": "open"
+    },
+    "identical_ours_manual": false
+   }
+  ]
+ },
+ "shared_species": [
+  "Clidemia clandestina",
+  "Ocotea laetevirens",
+  "Pachyrhizus erosus",
+  "Pleurothallis cardiothallis",
+  "Schefflera robusta"
+ ]
+}
