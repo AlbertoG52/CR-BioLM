@@ -36,9 +36,12 @@ def _record_regions() -> dict[str, set]:
     conn = pg_store.connect()
     try:
         with conn.cursor() as cur:
-            cur.execute("""SELECT species, region, count(*) FROM mpcr.occurrences
-                           WHERE species IS NOT NULL AND region IS NOT NULL
-                           GROUP BY species, region HAVING count(*) >= %s""",
+            # By taxon key: the download files records under GBIF's accepted name,
+            # which differs from the Manual's for 881 species with records.
+            cur.execute("""SELECT e.species, o.region, count(*) FROM mpcr.occurrences o
+                           JOIN mpcr.species_evidence e ON e.taxon_key = o.species_key
+                           WHERE o.region IS NOT NULL
+                           GROUP BY e.species, o.region HAVING count(*) >= %s""",
                         (MIN_RECORDS,))
             out: dict[str, set] = {}
             for sp, reg, _n in cur.fetchall():
@@ -71,9 +74,10 @@ def _record_slopes() -> dict[str, set]:
     conn = pg_store.connect()
     try:
         with conn.cursor() as cur:
-            cur.execute("""SELECT species, vertiente, count(*) FROM mpcr.occurrences
-                           WHERE species IS NOT NULL AND vertiente IS NOT NULL
-                           GROUP BY species, vertiente HAVING count(*) >= %s""",
+            cur.execute("""SELECT e.species, o.vertiente, count(*) FROM mpcr.occurrences o
+                           JOIN mpcr.species_evidence e ON e.taxon_key = o.species_key
+                           WHERE o.vertiente IS NOT NULL
+                           GROUP BY e.species, o.vertiente HAVING count(*) >= %s""",
                         (MIN_RECORDS,))
             out: dict[str, set] = {}
             for sp, v, _n in cur.fetchall():
