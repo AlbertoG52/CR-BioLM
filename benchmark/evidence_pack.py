@@ -304,7 +304,7 @@ _OCC_GATE = {
 
 def build(cur, species: str, qtype: str, *, level: str = "full",
           place_code: str | None = None, overrides: dict | None = None,
-          place_overrides: dict | None = None) -> Pack:
+          place_overrides: dict | None = None, companions_same_habit: bool = False) -> Pack:
     """Assemble the pack for one question. ``place_code`` is required for park types.
 
     ``overrides`` patches ficha fields and ``place_overrides`` patches the protected-area
@@ -381,10 +381,12 @@ def build(cur, species: str, qtype: str, *, level: str = "full",
             pack.add("notas y discusión (Manual)", (f.discussion or "")[:MORPHOLOGY_CHARS] or None)
         elif name == "especies compatibles":
             from .cooccurrence import neighbours
-            rows = neighbours(species, limit=12)
+            rows = neighbours(species, limit=12, same_habit=companions_same_habit)
             if rows:
-                pack.add("especies que el Manual reporta en las mismas regiones y rango "
-                         "altitudinal",
+                pack.add(("especies que el Manual reporta en las mismas regiones, rango "
+                          "altitudinal y forma de crecimiento") if companions_same_habit else
+                         ("especies que el Manual reporta en las mismas regiones y rango "
+                          "altitudinal"),
                          chr(10).join(f"- {r['species']} ({r['family']}), "
                                       f"{r['elevation'][0]}-{r['elevation'][1]} m"
                                       for r in rows))

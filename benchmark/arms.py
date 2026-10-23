@@ -45,6 +45,7 @@ class Arm:
     note: str = ""
     prompt: str = "shared"     # prompt family, see prompts.FAMILIES
     routed: bool = False       # True = the router picks species, recipe and place
+    companions_same_habit: bool = False   # companion list filtered by growth form
 
     @property
     def pin(self) -> tuple[str, ...]:
@@ -72,6 +73,15 @@ ARMS = {a.name: a for a in [
     Arm("FM", OPEN, "map", prompt="map",
         note="grounded by MAP ONLY, open weights: same model as F"),
     Arm("G",  None, "full", note="template, no model: the floor"),
+    # The same three grounded arms with the companion list filtered by growth form, the
+    # condition an expert asked companions to meet. Only the co-occurrence evidence
+    # differs, so these are run on that question type alone.
+    Arm("DH", PAID, "full", companions_same_habit=True,
+        note="as D, companions filtered by growth form"),
+    Arm("FH", OPEN, "full", companions_same_habit=True,
+        note="as F, companions filtered by growth form"),
+    Arm("RH", OPEN, "full", routed=True, companions_same_habit=True,
+        note="as R, companions filtered by growth form"),
     Arm("R",  OPEN, "full", routed=True,
         note="AGENT-ROUTED: same generator and evidence as F, but the router reads the "
              "bare question and chooses species, recipe and place. F is its oracle-"
@@ -79,7 +89,8 @@ ARMS = {a.name: a for a in [
 ]}
 
 # Arms runnable today. B waits on the search mechanism being confirmed.
-READY = [n for n in ("G", "A1", "A1F", "C", "CF", "D", "E", "F", "DM", "FM", "R")]
+READY = [n for n in ("G", "A1", "A1F", "C", "CF", "D", "E", "F", "DM", "FM", "R",
+                      "DH", "FH", "RH")]
 
 # What the routed arm says when the router cannot serve the question: no species
 # resolved, an exit route, or a park it could not identify. A deployed system that

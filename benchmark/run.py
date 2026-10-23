@@ -234,7 +234,8 @@ def main() -> None:
                                "cost_usd": r["proposal"].get("_cost_usd")}
                     if rec:
                         pack = build_pack(cur, rec[0], rec[1], level="full",
-                                          place_code=rec[2])
+                                          place_code=rec[2],
+                                          companions_same_habit=arm.companions_same_habit)
                 elif arm.routed:
                     pass            # dry run: routing costs a call, so it is skipped
                 elif arm.evidence == "map":
@@ -253,7 +254,8 @@ def main() -> None:
                     img_b64 = base64.b64encode(Path(mp).read_bytes()).decode()
                 elif arm.evidence:
                     pack = build_pack(cur, q["species"], q["qtype"], level=arm.evidence,
-                                      place_code=q["key"].get("place_code"))
+                                      place_code=q["key"].get("place_code"),
+                                      companions_same_habit=arm.companions_same_habit)
 
                 if args.dry_run:
                     if i <= len(selected) * 2:     # a couple of questions is enough to eyeball

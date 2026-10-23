@@ -119,7 +119,40 @@ def extract_species(text: str) -> list[str]:
     return out
 
 
-def check(subject: str, named: list[str], *, use_gbif: bool = True) -> list[dict]:
+_HABIT_CLASS = {"árbol": "árbol", "arbolito": "árbol", "arbusto": "arbusto",
+                "sufrútice": "arbusto", "subarbusto": "arbusto", "hierba": "hierba",
+                "epífita": "epífita", "hemiepífita": "epífita", "bejuco": "bejuco",
+                "liana": "bejuco", "trepadora": "bejuco", "palma": "palma"}
+
+
+@lru_cache(maxsize=1)
+def _habits() -> dict:
+    """species (normalized) -> set of broad growth-form classes, from the catalogue."""
+    from mpcr_rag.store import pg_store
+    conn = pg_store.connect()
+    try:
+        with conn.cursor() as cur:
+            from mpcr_rag.ingest.field_extractor import _FAMILY_HABIT, _match_habits
+            cur.execute("""SELECT species, ficha->'habits', ficha->>'family',
+                                  left(ficha->>'morphology', 160) FROM mpcr.fichas""")
+            out = {}
+            for sp, hs, fam, morph in cur.fetchall():
+                # The same reading the growth-form keys use: the opening of the
+                # species' own description, then the stored habits.
+                cls = {_HABIT_CLASS[h] for h in list(_match_habits(morph or "")) + list(hs or [])
+                       if h in _HABIT_CLASS}
+                if not cls and _FAMILY_HABIT.get(fam) in _HABIT_CLASS:
+                    # "terrestre" alone says nothing about form; fall back on the family
+                    # default the growth-form keys use (Marantaceae: hierba).
+                    cls = {_HABIT_CLASS[_FAMILY_HABIT[fam]]}
+                out[_norm(sp)] = cls
+            return out
+    finally:
+        conn.close()
+
+
+def check(subject: str, named: list[str], *, use_gbif: bool = True,
+          same_habit: bool = False) -> list[dict]:
     """Per named species, one of three tiers.
 
     assessable     in the catalogue with regions and elevation -- compatibility decided
@@ -159,6 +192,14 @@ def check(subject: str, named: list[str], *, use_gbif: bool = True) -> list[dict
         shared = sorted(regs & s_regs)
         elev_ok = lo <= s_hi and hi >= s_lo
         ok = bool(shared) and elev_ok
+        # The stricter reading an expert proposed: sharing a region and an elevation
+        # band does not make two plants share a niche, so a companion should also share
+        # a growth form (tree with tree, epiphyte with epiphyte). Applied only where both
+        # growth forms are known; reported beside the original rule, not instead of it.
+        if same_habit and ok:
+            h_sub, h_named = _habits().get(_norm(subject), set()), _habits().get(_norm(canon), set())
+            if h_sub and h_named and not (h_sub & h_named):
+                ok = False
         why = ("compatible" if ok else
                "sin región botánica en común" if not shared else
                f"rango altitudinal disjunto ({lo}-{hi} m vs {s_lo}-{s_hi} m)")
@@ -226,7 +267,7 @@ if __name__ == "__main__":
     main()
 
 
-def neighbours(subject: str, limit: int = 12) -> list[dict]:
+def neighbours(subject: str, limit: int = 12, same_habit: bool = False) -> list[dict]:
     """Species the Manual places in the same regions and elevation band as the subject.
 
     This is what "grounded" means for this question. A third of the flora qualifies, so
@@ -240,12 +281,18 @@ def neighbours(subject: str, limit: int = 12) -> list[dict]:
         return []
     s_regs, s_lo, s_hi, s_fam, s_canon = sub
     s_mid = (s_lo + s_hi) / 2
+    # With same_habit, only species that share the subject's growth form are offered,
+    # the condition an expert asked companions to meet. When the subject's growth form
+    # is unknown there is nothing to filter on and the list is the unfiltered one.
+    s_hab = _habits().get(_norm(subject), set()) if same_habit else set()
     scored = []
     for key, (regs, lo, hi, fam, canon) in cat.items():
         if canon == s_canon:
             continue
         shared = regs & s_regs
         if not shared or not (lo <= s_hi and hi >= s_lo):
+            continue
+        if s_hab and not (_habits().get(key, set()) & s_hab):
             continue
         scored.append((len(shared), -abs((lo + hi) / 2 - s_mid), fam == s_fam,
                        {"species": canon, "family": fam, "elevation": [lo, hi],
