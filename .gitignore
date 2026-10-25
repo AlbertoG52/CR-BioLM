@@ -40,9 +40,7 @@ PLAN_*.md
 Thumbs.db
 
 # Resultados de experimentos y datos derivados
-# Individual runs are committed selectively (git add -f experiment/runs/EXP-*)
-# Archive of contaminated pre-cleanup runs is never committed
-experiment/runs/_archive_pre_cleanup/
+experiment/runs/
 experiment/results.csv
 experiment/experiment_log.json
 experiment/evaluation_log.json
@@ -67,3 +65,11 @@ experiment/test_species*.txt
 # generated run artefacts (regenerate with benchmark.run / benchmark.score)
 benchmark/data/answers_*.jsonl
 benchmark/data/verdicts_*.jsonl
+
+# Papers and experiment data are never committed: only code.
+# (paper2/build_results.py is code and stays tracked.)
+paper2/*
+!paper2/build_results.py
+mpcr_rag/paper/
+benchmark/data/
+*.xlsx
