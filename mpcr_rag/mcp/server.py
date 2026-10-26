@@ -100,6 +100,19 @@ def _envelope(
         "caveat": caveat,
     }
 
+def _freshness(info) -> tuple[dict, str]:
+    """RR_56: when a species' GBIF points were fetched, for the envelope value, and
+    the caveat to add when a due refresh failed and the previous points are served."""
+    fields = {"updated_at": info.updated_at, "stale": info.stale}
+    caveat = ""
+    if info.stale:
+        caveat = (f"Could not refresh the GBIF points; these are the ones fetched on "
+                  f"{info.updated_at}.")
+    return fields, caveat
+
+
+def _join(*caveats: str) -> str:
+    return " ".join(c for c in caveats if c)
 
 def _ficha_summary(f) -> dict:
     return {
@@ -346,7 +359,7 @@ def get_occurrence_points(species: str, limit: int = 500) -> dict:
     """Cleaned Costa Rica GBIF presence points for a species, one entry per record.
 
     Cost: L1 — same disk cache as get_occurrences (the first call fetches from
-    GBIF, later calls are instant). No LLM.
+    GBIF, later calls are instant until the cache expires). No LLM.
 
     The points are already cleaned by gbif_map: occurrenceStatus=PRESENT,
     hasCoordinate=true, hasGeospatialIssue=false, no (0,0), swapped lat/lon fixed,
@@ -357,18 +370,22 @@ def get_occurrence_points(species: str, limit: int = 500) -> dict:
         limit: maximum number of points returned (the count n is always total)
 
     Returns a provenance envelope whose value is:
-      {n, truncated, points: [{lat, lon, elev_m, region, vertiente, date}]}
+         {n, truncated, points: [{lat, lon, elev_m, region, vertiente, date}],
+          updated_at, stale}
     date is the GBIF eventDate ('YYYY-MM-DD', 'YYYY-MM' or 'YYYY'), or None.
+    updated_at: when the points were fetched from GBIF (UTC ISO-8601).
+    stale: true when a refresh failed and the previous points are returned.
     """
     citation = "GBIF occurrence API — Costa Rica (occurrenceStatus=PRESENT, hasCoordinate=true, hasGeospatialIssue=false)"
-    pts = gbif_map.get_points(species)
+    pts, info = gbif_map.get_points_info(species)
+    fresh, fresh_caveat = _freshness(info)
     if pts.empty:
         return _envelope(
-            {"n": 0, "truncated": False, "points": []},
+            {"n": 0, "truncated": False, "points": [], **fresh},
             source="GBIF",
             citation=citation,
             confidence="insufficient",
-            caveat=f"No GBIF occurrences found for '{species}' in Costa Rica.",
+            caveat=_join(f"No GBIF occurrences found for '{species}' in Costa Rica.", fresh_caveat),
         )
 
     def _num(v):
@@ -393,10 +410,11 @@ def get_occurrence_points(species: str, limit: int = 500) -> dict:
             "date": _text(p.get("date")),
         })
     return _envelope(
-        {"n": len(pts), "truncated": len(pts) > limit, "points": points},
+        {"n": len(pts), "truncated": len(pts) > limit, "points": points, **fresh},
         source="GBIF",
         citation=citation,
         confidence="exact",
+        caveat=fresh_caveat,
     )
 
 @server.tool()
