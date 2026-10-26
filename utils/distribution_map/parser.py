@@ -309,6 +309,15 @@ def build_ficha(
         except Exception as e:
             print(f"  [WARN] LLM fallback failed: {e}")
 
+    # ── Directional ranges ("vert. Pac. desde P.N. Carara al S") ──────────────
+    # The gazetteer finds the anchor and nothing else; see directional.py.
+    from .directional import expand as _directional
+    have = {r.canonical_name for r in regions}
+    for name, _phrase in _directional(geographic_notes or combined_text):
+        if name not in have:
+            have.add(name)
+            regions.append(EntityRef(name, "region_other", "directional"))
+
     # ── Confidence summary ────────────────────────────────────────────────────
     n_matched = len(regions) + len(parks) + len(cantons) + len(districts)
     confidence = {

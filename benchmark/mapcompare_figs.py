@@ -33,6 +33,20 @@ DATA = Path(__file__).resolve().parent / "data"
 OUT = DATA / "mapcompare_examples"
 SEED = 20261012
 LAND, FILL, DOT_IN, DOT_OUT, INK = "#e9ebe8", "#2a9d8f", "#1d3557", "#d1495b", "#1f2a28"
+# Labels in Spanish for the experts, in English for the paper.
+TEXT = {"es": {"cap": "capta {n} de {t} registros · cubre {a:.1f}% del país",
+               "ours": "Nuestro mapa: Manual + regiones con registros",
+               "manual": "Solo el rango que declara el Manual",
+               "model": "{m}: su descripción", "noelev": "sin altitud",
+               "all": "todo el país", "noreg": "sin regiones", "more": " y {k} más",
+               "noslope": "sin vertiente"},
+        "en": {"cap": "captures {n} of {t} records · covers {a:.1f}% of the country",
+               "ours": "Ours: the Manual plus regions with records",
+               "manual": "The Manual's stated range alone",
+               "model": "{m}: from its own description", "noelev": "no elevation",
+               "all": "whole country", "noreg": "no regions", "more": " and {k} more",
+               "noslope": "no slope"}}
+LANG = "es"
 
 
 def _points(cur, species: str):
@@ -65,8 +79,8 @@ def _panel(ax, title: str, ing: dict | None, pts: list) -> None:
         n_in += inside
         ax.scatter([lon], [lat], s=13, color=DOT_IN if inside else DOT_OUT,
                    edgecolor="white", linewidth=0.4, zorder=3)
-    ax.set_title(f"{title}\ncapta {n_in} de {len(pts)} registros · cubre "
-                 f"{100 * area:.1f}% del país", fontsize=9.5, color=INK)
+    cap = TEXT[LANG]["cap"].format(n=n_in, t=len(pts), a=100 * area)
+    ax.set_title(f"{title}\n{cap}", fontsize=9.5, color=INK)
     ax.set_xticks([])
     ax.set_yticks([])
     for s in ax.spines.values():
@@ -74,9 +88,13 @@ def _panel(ax, title: str, ing: dict | None, pts: list) -> None:
 
 
 def _describe(ing: dict) -> str:
-    elev = f"{ing['elev'][0]}–{ing['elev'][1]} m" if ing["elev"] else "sin altitud"
-    reg = ", ".join(ing["regions"]) if ing["regions"] else "sin regiones"
-    return f"{elev} · {', '.join(ing['slopes']) or 'sin vertiente'} · {reg}"
+    t = TEXT[LANG]
+    elev = f"{ing['elev'][0]}–{ing['elev'][1]} m" if ing["elev"] else t["noelev"]
+    r = ing["regions"]
+    reg = (t["all"] if ing.get("everywhere") else t["noreg"] if not r
+           else ", ".join(r) if len(r) <= 4
+           else ", ".join(r[:3]) + t["more"].format(k=len(r) - 3))
+    return f"{elev} · {', '.join(ing['slopes']) or t['noslope']} · {reg}"
 
 
 def main() -> None:
@@ -89,7 +107,11 @@ def main() -> None:
                     help="comma separated species: draw exactly these, no random draw")
     ap.add_argument("--out", default="", help="subfolder for the images")
     ap.add_argument("--part", default="main", help="which scored sample to draw from")
+    ap.add_argument("--lang", default="es", choices=sorted(TEXT))
     args = ap.parse_args()
+    global LANG
+    LANG = args.lang
+    t = TEXT[LANG]
     models = [m.strip() for m in (args.models or args.model).split(",") if m.strip()]
     label = {"open": "Gemma 4 31B", "paid": "Mistral Large 4"}
 
@@ -119,10 +141,8 @@ def main() -> None:
             # Our map first: it is what the system delivers and the reference the others
             # are read against. The Manual's stated range alone is shown second, as the
             # diagnostic of what the record-based regions add.
-            panels = [("Nuestro mapa: Manual + regiones con registros",
-                       M.with_records(manual, recs)),
-                      ("Solo el rango que declara el Manual", manual)]
-            panels += [(f"{label.get(m, m)}: su descripción", by[(sp, m)]["ingredients"])
+            panels = [(t["ours"], M.with_records(manual, recs)), (t["manual"], manual)]
+            panels += [(t["model"].format(m=label.get(m, m)), by[(sp, m)]["ingredients"])
                        for m in models if (sp, m) in by]
             fig, axes = plt.subplots(1, len(panels), figsize=(4.5 * len(panels), 5.4), dpi=120)
             for ax, (title, ing) in zip(axes, panels):

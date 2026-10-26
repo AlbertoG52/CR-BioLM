@@ -216,9 +216,41 @@ def extract(raw: RawFicha) -> Ficha:
     )
 
 
+_RANGE_IN_NAME = re.compile(r"\.(\d{1,4})[_-](\d{1,4})\.pdf$", re.I)
+
+
+def page_offset(pdf_name: str) -> int:
+    """The book page of the first page of a corpus PDF.
+
+    The segmenter numbers pages from 0 within each file, and that index was being
+    stored as the page. It is not the book page: the files are cut from the volumes,
+    and their names carry the book pages they hold ("Lemnaceae_Musaceae
+    MPCRv2.618_674.pdf"). Calathea donnell-smithii was cited as Tomo II, p. 21; it is on
+    p. 639 (618 + 21). Found by an expert reviewing citations, and checked against the
+    page numbers printed on the PDFs: the offset is the first page in the file name, and
+    1 for the whole-volume files, whose printed numbering starts at 1.
+    """
+    m = _RANGE_IN_NAME.search(pdf_name)
+    return int(m.group(1)) if m else 1
+
+
+def volume_label(entry: dict) -> str:
+    """Volume IV ships as two files with separate pagination; the second is IV(2), and
+    a page number cited without saying which part could not be found."""
+    return "IV(2)" if "IV(2)" in entry["path"].name else entry["volume"]
+
+
 def extract_corpus_pdf(entry: dict) -> list[Ficha]:
     raws = segment(str(entry["path"]), volume=entry["volume"], family=entry["family"])
-    return [extract(r) for r in raws if r.distribution_paragraph]
+    offset, volume = page_offset(entry["path"].name), volume_label(entry)
+    out = []
+    for r in raws:
+        if r.distribution_paragraph:
+            f = extract(r)
+            f.pages = str(offset + int(r.page))
+            f.volume = volume
+            out.append(f)
+    return out
 
 
 if __name__ == "__main__":

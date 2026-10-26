@@ -217,6 +217,12 @@ def for_species(cur, item: dict, rng) -> list[dict]:
     if not forms:
         genus_forms = [h for h in _match_habits((f.genus_description or "")[:160]) if h != "terrestre"]
         forms, level = (genus_forms, "inferred_relatives") if len(genus_forms) == 1 else ([], None)
+    if "acuática" in forms and not set(forms) & {"árbol", "arbusto", "hierba", "bejuco", "epífita"}:
+        # "Aquatic" says where a plant grows, not what form it takes. An expert reviewing
+        # the keys corrected Eleocharis filiculmis to "hierba perenne, acuática": the
+        # life form is a herb, stated at family level. Keyed on "acuática" alone, an
+        # answer saying herb was marked wrong.
+        forms = ["hierba"] + forms
     if forms:
         qs.append({"qtype": "growth_form",
                    "question": f"¿{sp} es un árbol, un arbusto, una hierba, una epífita o un bejuco?",
@@ -314,11 +320,11 @@ def _review_priority(q: dict, item: dict) -> str:
     return "low"
 
 
-def build(part: str) -> Path:
+def build(part: str, out: Path | None = None) -> Path:
     sample = json.loads((DATA / "species_sample.json").read_text(encoding="utf-8"))
     rng = random.Random(f"{SEED}-{part}")
     conn = pg_store.connect()
-    out = DATA / f"questions_{part}.jsonl"
+    out = out or DATA / f"questions_{part}.jsonl"
     n = 0
     with conn.cursor() as cur, out.open("w", encoding="utf-8") as fh:
         for item in sample[part]:
@@ -333,4 +339,6 @@ def build(part: str) -> Path:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--part", default="pilot", choices=["pilot", "main"])
-    build(ap.parse_args().part)
+    ap.add_argument("--out", default="", help="write here instead of the frozen file")
+    a = ap.parse_args()
+    build(a.part, Path(a.out) if a.out else None)
