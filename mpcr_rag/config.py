@@ -99,6 +99,13 @@ PGDATA = Path(os.environ.get(
 # a system-wide Postgres.
 PG_PORT = int(os.environ.get("MPCR_PG_PORT", "5433"))
 
+# --- GBIF points cache (query/gbif_cache.py, RR_56) --------------------------
+# Days before a species' cached GBIF points are fetched again. 0 = never: the cache
+# stays frozen, as the paper's experiments assume. The web app sets it (e.g. 30).
+GBIF_CACHE_MAX_DAYS = float(os.environ.get("MPCR_GBIF_CACHE_MAX_DAYS") or 0)
+# After a failed refresh, hours before GBIF is asked again for that species.
+GBIF_RETRY_FAILED_HOURS = float(os.environ.get("MPCR_GBIF_RETRY_FAILED_HOURS") or 1)
+
 # --- LLM enrichment (reuses CR-BioLM OpenRouter setup) ----------------------
 ENRICH_MODEL = os.environ.get("MPCR_ENRICH_MODEL", "openai/gpt-4o-mini")
 

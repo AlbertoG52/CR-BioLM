@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import unicodedata
 import zipfile
+from datetime import timedelta 
 from pathlib import Path
 
 import geopandas as gpd
@@ -34,9 +35,16 @@ _MAX_UNCERTAINTY_M = 10_000           # drop records less precise than ~10 km
 
 from .. import config
 from ..schema import Ficha
+from .gbif_cache import CacheInfo, PointsCache  
 
 _CACHE = config.DATA_DIR / "gbif_cache"
 _CACHE.mkdir(exist_ok=True)
+# Per-species GBIF points, with the date they were fetched and an expiry.
+_POINTS = PointsCache(
+    _CACHE,
+    max_days=config.GBIF_CACHE_MAX_DAYS,
+    retry_failed_after=timedelta(hours=config.GBIF_RETRY_FAILED_HOURS),
+)
 _MAPS = config.DATA_DIR / "maps"
 _MAPS.mkdir(exist_ok=True)
 
@@ -193,8 +201,8 @@ def count_only(species: str) -> int:
     return int(_load_snapshot_counts().get(name, 0))
 
 
-def get_points(species: str) -> gpd.GeoDataFrame:
-    """Cached CR GBIF points for a species, tagged with Altitud + Nombre + Vertiente."""
+"""def get_points(species: str) -> gpd.GeoDataFrame:
+    #Cached CR GBIF points for a species, tagged with Altitud + Nombre + Vertiente.
     cache_file = _CACHE / f"{species.replace(' ', '_')}.geojson"
     if cache_file.exists():
         return gpd.read_file(cache_file)
@@ -210,6 +218,41 @@ def get_points(species: str) -> gpd.GeoDataFrame:
         pts = pts.drop(columns=[c for c in ("index_right",) if c in pts.columns])
         pts["species"] = species
     pts.to_file(cache_file, driver="GeoJSON")
+    return pts"""
+
+def get_points(species: str) -> gpd.GeoDataFrame:
+    """Cached CR GBIF points for a species, tagged with Altitud + Nombre + Vertiente."""
+    return get_points_info(species)[0]
+
+
+def get_points_info(species: str, *, max_days: float | None = None,
+                    force: bool = False) -> tuple[gpd.GeoDataFrame, CacheInfo]:
+    """get_points plus when those points were fetched from GBIF (RR_56).
+
+    The cache is fetched again when it is older than MPCR_GBIF_CACHE_MAX_DAYS
+    (never, with the default 0) or with ``force``. If that fetch fails, the previous
+    points come back with ``info.stale`` set. See query/gbif_cache.py.
+    """
+    return _POINTS.get(species, _fetch_enriched, max_days=max_days, force=force)
+
+
+def points_cache() -> PointsCache:
+    """The GBIF points cache, for scripts/refresh_gbif.py."""
+    return _POINTS
+
+
+def _fetch_enriched(species: str) -> gpd.GeoDataFrame:
+    """CR GBIF points fetched now, tagged with Altitud + Nombre + Vertiente."""
+    pts = _fetch_clean(species)
+    if pts.empty:
+        pts = gpd.GeoDataFrame({"lon": [], "lat": [], "date": [], "Altitud": [], "Nombre": [],
+                                "Vertiente": [], "species": []},
+                               geometry=[], crs="EPSG:4326")
+    else:
+        pts = extraer_altitud(pts, cr_config.DEM_PATH)        # adds 'Altitud'
+        pts = gpd.sjoin(pts, _regions(), how="left", predicate="within")
+        pts = pts.drop(columns=[c for c in ("index_right",) if c in pts.columns])
+        pts["species"] = species
     return pts
 
 
