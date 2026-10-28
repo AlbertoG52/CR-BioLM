@@ -681,6 +681,30 @@ def resolve_common_name(name: str, region: Optional[str] = None,
     )
 
 
+@server.tool()
+def list_synonyms() -> dict:
+    """Every scientific synonym of the catalog, with the Manual species it maps to.
+
+    Cost: L0 - free, local table lookup.
+
+    The envelope value is a list of {synonym, species, family, source}. A synonym
+    that maps to several species appears once per species. The synonyms come from the
+    GBIF backbone and may disagree with the Manual.
+    """
+    from mpcr_rag.evidence import synonyms
+    try:
+        rows = synonyms.all_synonyms()
+    except Exception:
+        rows = []
+    return _envelope(
+        rows, source="GBIF",
+        citation="mpcr.synonym (GBIF backbone synonyms of each catalog species)",
+        confidence="estimated",
+        caveat="" if rows else "The synonym table is empty or missing; run "
+                               "python -m mpcr_rag.evidence.synonyms fetch.",
+    )
+
+
 def _check_l2() -> str:
     missing = []
     if config.VECTOR_BACKEND == "pinecone" and not os.environ.get("PINECONE_API_KEY"):
