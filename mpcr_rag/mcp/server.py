@@ -210,6 +210,11 @@ def search_species(
     )
 
 
+def _common_names(species: str) -> list[str]:
+    from mpcr_rag.evidence import vernacular
+    return vernacular.names_for(species)
+
+
 @server.tool()
 def get_species(name: str) -> dict:
     """Fetch the full ficha for a single species by scientific name.
@@ -238,7 +243,9 @@ def get_species(name: str) -> dict:
         "morphology": f.morphology,
         "discussion": f.discussion,
         "genus_description": f.genus_description,
-        "common_names": f.common_names,
+        # The parsed Manual headers leave common_names empty; fall back to the
+        # vernacular table (Costa Rica-preferred name first).
+        "common_names": f.common_names or _common_names(f.species),
     }
     return _envelope(
         value,
@@ -652,9 +659,10 @@ def resolve_common_name(name: str, region: Optional[str] = None,
     than guessing: global name indexes answer a different question (Tropicos returns
     the leek, Allium porrum, for "Poro").
 
-    Matching is accent-sensitive first ("poro" the leek vs "poro" with an accent, the
-    Erythrina), then accent-insensitive. Optional region and elevation from the
-    question narrow the candidates.
+    Matching ignores accents and case ("jicaro" and "Jícaro" give the same
+    candidates); only catalog species are returned, so names used for plants
+    outside Costa Rica (the leek for "poro") never appear. Optional region and
+    elevation from the question narrow the candidates.
     """
     from mpcr_rag.evidence import vernacular
     d = vernacular.resolve_decision(name, region=region, elev=elev)

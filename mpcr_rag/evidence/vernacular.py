@@ -337,14 +337,19 @@ def resolve(name: str, *, conn=None, region: str | None = None,
         GROUP BY v.species, f.ficha, f.regions, e.n_records"""
     try:
         with conn.cursor() as cur:
-            # Accent-sensitive first: "poró" (Erythrina, Costa Rica) and "poro" (leek,
-            # Mexico) are different plants, so the unaccented match is only a fallback.
-            cur.execute(sql.format(clause="lower(v.vernacular) = lower(%s)"), (name.strip(),))
+            # Always unaccented (RR_35): "jicaro" and "jícaro" must give the same
+            # candidates. Matching the accented spelling first let a single unaccented
+            # row ("Jicaro", one species) hide the other four "Jícaro". The JOIN with
+            # mpcr.fichas keeps only catalog species, so the leek that "poro" names in
+            # Mexico (the reason for the old accent-sensitive pass) never shows up.
+            cur.execute(sql.format(clause="v.name_norm = %s"), (norm(name),))
             cols = [c.name for c in cur.description]
-            cands = [dict(zip(cols, r), match="exact") for r in cur.fetchall()]
-            if not cands:
-                cur.execute(sql.format(clause="v.name_norm = %s"), (norm(name),))
-                cands = [dict(zip(cols, r), match="unaccented") for r in cur.fetchall()]
+            typed = name.strip().lower()
+            cands = []
+            for r in cur.fetchall():
+                c = dict(zip(cols, r))
+                c["match"] = "exact" if (c["as_published"] or "").lower() == typed else "unaccented"
+                cands.append(c)
     finally:
         if own:
             conn.close()
@@ -398,6 +403,40 @@ def resolve_decision(name: str, **kw) -> dict:
         return {"decision": "preferred", "name": name, "species": best["species"],
                 "candidates": cands}
     return {"decision": "ambiguous", "name": name, "candidates": cands}
+
+
+def names_for(species: str, conn=None) -> list[str]:
+    """Common names stored for one catalog species, best first.
+
+    Order: names more sources agree on; then names that point to fewer species
+    (an ambiguous "Jícaro" goes after "Olla de mono"); then names printed in the
+    Manual; then the one iNaturalist prefers for Costa Rica, which is often an
+    indigenous name ("Kós", "Shkulí"). One spelling per name, the Manual's when it
+    has it. Empty when the table is missing or the database is down: callers
+    treat common names as optional.
+    """
+    own = conn is None
+    try:
+        conn = conn or pg_store.connect()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT (array_agg(v.vernacular ORDER BY v.source = 'MPCR' DESC,
+                                                        v.vernacular))[1]
+                FROM mpcr.vernacular v
+                WHERE v.species = %s
+                GROUP BY v.name_norm
+                ORDER BY count(DISTINCT v.source) DESC,
+                         (SELECT count(DISTINCT w.species) FROM mpcr.vernacular w
+                          WHERE w.name_norm = v.name_norm) ASC,
+                         bool_or(v.source = 'MPCR') DESC,
+                         bool_or(v.is_preferred AND v.country_code = 'CR') DESC,
+                         min(v.vernacular)""", (species,))
+            return [r[0] for r in cur.fetchall()]
+    except Exception:
+        return []
+    finally:
+        if own and conn is not None:
+            conn.close()
 
 
 def report(conn=None) -> None:
