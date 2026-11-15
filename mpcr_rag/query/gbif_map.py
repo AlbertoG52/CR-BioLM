@@ -13,6 +13,9 @@ region/vertiente spatial join. GBIF points are cached per species on disk
 from __future__ import annotations
 
 import json
+import os
+import sys
+import threading
 import unicodedata
 import zipfile
 from datetime import timedelta 
@@ -346,15 +349,39 @@ def single_species_map(f: Ficha, *, out_path: Path | None = None) -> tuple[Path,
     """
     from ..ingest.field_extractor import split_distribution
 
-    habitat_raw, geo_notes = split_distribution(f.distribution_paragraph)
-    df = build_ficha(habitat_raw=habitat_raw, geographic_notes=geo_notes, species=f.species)
-    pts = get_points(f.species)
-
+    pts = get_points(f.species)   # first: applies the GBIF refresh rules (RR_56)
     out_path = out_path or (_MAPS / f"manual_{f.vector_id}.png")
 
+    # Reuse the PNG while it is newer than the species' cached GBIF points and than
+    # the renderer itself: redrawing on every call is what made 10 simultaneous
+    # queries time out (DEF-13). The map is deterministic for those two inputs.
+    if _map_is_current(out_path, f.species):
+        return out_path, len(pts)
 
-    generate_distribution_map(df, out_path, presencias_gdf=pts if not pts.empty else None)
+    habitat_raw, geo_notes = split_distribution(f.distribution_paragraph)
+    df = build_ficha(habitat_raw=habitat_raw, geographic_notes=geo_notes, species=f.species)
+
+    # Draw into a temporary file and rename it at the end, so two simultaneous
+    # drawings of the same species never leave a half-written PNG behind.
+    tmp = out_path.with_name(f"{out_path.stem}.{os.getpid()}-{threading.get_ident()}.tmp.png")
+    try:
+        generate_distribution_map(df, tmp, presencias_gdf=pts if not pts.empty else None)
+        os.replace(tmp, out_path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
     return out_path, len(pts)
+
+
+def _map_is_current(png: Path, species: str) -> bool:
+    """True when `png` exists and is newer than the species' GBIF points and the renderer."""
+    if not png.exists():
+        return False
+    drawn = png.stat().st_mtime
+    points = _CACHE / f"{species.replace(' ', '_')}.geojson"
+    renderer = Path(sys.modules[generate_distribution_map.__module__].__file__)
+    return (not points.exists() or drawn >= points.stat().st_mtime) \
+        and drawn >= renderer.stat().st_mtime
 
 
 if __name__ == "__main__":

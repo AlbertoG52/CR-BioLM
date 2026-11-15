@@ -27,6 +27,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.font_manager as fm
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 import geopandas as gpd
 import rasterio
 from rasterio.mask import mask as rio_mask
@@ -42,6 +44,7 @@ from .geodata import (
 )
 from .gazetteer import _load_entities, normalize_text, lookup
 
+SCALE_BAR_KM = 50   # length of the map's scale bar (RR_48)
 
 # ---------------------------------------------------------------------------
 # Entity → GDF resolution
@@ -874,6 +877,18 @@ def generate_distribution_map(
     ax.tick_params(colors="#6b7280", labelsize=7)
     for spine in ax.spines.values():
         spine.set_edgecolor("#374151")
+
+    # ── Scale bar (RR_48) ─────────────────────────────────────────────────
+    # The x axis is in degrees of longitude: 1° ≈ 111.32 km × cos(latitude).
+    # Upper right, because both legends sit along the bottom edge.
+    y0, y1 = ax.get_ylim()
+    km_per_degree = 111.32 * np.cos(np.radians((y0 + y1) / 2))
+    ax.add_artist(AnchoredSizeBar(
+        ax.transData, SCALE_BAR_KM / km_per_degree, f"{SCALE_BAR_KM} km",
+        loc="upper right", pad=0.6, borderpad=0.8, sep=4, frameon=False,
+        color="#e5e7eb", size_vertical=(y1 - y0) * 0.004,
+        fontproperties=fm.FontProperties(size=8),
+    ))
 
     fig.savefig(output_path, dpi=140, bbox_inches="tight",
                 facecolor=fig.get_facecolor())
